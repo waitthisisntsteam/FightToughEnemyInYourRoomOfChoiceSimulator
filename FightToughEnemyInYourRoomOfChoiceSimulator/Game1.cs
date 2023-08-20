@@ -10,6 +10,31 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         private GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
 
+        private Sprite Guy;
+        private SpriteEffects direction = SpriteEffects.FlipHorizontally;
+        private SpriteEffects e_d = SpriteEffects.FlipHorizontally;
+        private bool goUp = false;
+        private bool jump = false;
+        private int jumpHeight = 0;
+
+        public void Jump()
+        {
+            if (goUp == true)
+            {
+                jump = true;
+                Guy.Position.Y -= jumpHeight;
+                if (jumpHeight < 15)
+                {
+                    jumpHeight += 1;
+                }
+                else if (jumpHeight == 15)
+                {
+                    jumpHeight = 0;
+                    goUp = false;
+                }
+            }
+        }
+
         public Game1()
         {
             _graphics = new GraphicsDeviceManager(this);
@@ -38,9 +63,14 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
             // TODO: Add your update logic here
 
+            Jump();
+
             if (Keyboard.GetState().IsKeyDown(Keys.Up))
             {
-
+                if (goUp == false)
+                {
+                    goUp = true;
+                }
             }
             if (Keyboard.GetState().IsKeyDown(Keys.Left))
             {
