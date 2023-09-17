@@ -30,7 +30,6 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         private Frame hurtInAirFrame;
 
         private bool goUp = false;
-        private bool jump = false;
         private int jumpHeight = 0;
         private Frame jumpFrame;
         private int jumpCount = 0;
@@ -52,72 +51,12 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         private bool crouch = false;
         private Frame crouchFrame;
 
-        private int gravity = 2;
+        private float kirbySpeedY = 0;
+        private float gravity = .2f;
 
-        /*public void Jump()
+        public void KirbyUpdate(GameTime time)
         {
-            if (goUp == true)
-            {
-                jump = true;
-                Kirby.Position.Y -= jumpHeight;
-                if (jumpHeight < 15)
-                {
-                    jumpHeight += 1;
-                }
-                else if (jumpHeight == 15)
-                {
-                    jumpHeight = 0;
-                    goUp = false;
-                }
-            }
-        }*/
-
-        public Game1()
-        {
-            gfx = new GraphicsDeviceManager(this);
-            Content.RootDirectory = "Content";
-            IsMouseVisible = false;
-        }
-
-        protected override void Initialize()
-        {
-            // TODO: Add your initialization logic here
-
-            base.Initialize();
-        }
-
-        protected override void LoadContent()
-        {
-            
-            spriteBatch = new SpriteBatch(GraphicsDevice);
-
-            // TODO: use this.Content to load your game content here
-
-            SpriteSheet = Content.Load<Texture2D>("kirby");
-
-            Kirby = new Sprite(new Vector2(0, GraphicsDevice.Viewport.Height - 32), Color.White, Content.Load<Texture2D>("kirby"));
-
-
-            idleFrames.Add(new Frame(Vector2.Zero, new Rectangle(149, 126, 16, 16)));
-            idleFrames.Add(new Frame(Vector2.Zero, new Rectangle(191, 126, 16, 16)));
-            idleFrames.Add(new Frame(Vector2.Zero, new Rectangle(171, 126, 16, 16)));
-            idleFrames.Add(new Frame(Vector2.Zero, new Rectangle(191, 126, 16, 16)));
-            idleFrames.Add(new Frame(Vector2.Zero, new Rectangle(211, 126, 16, 16)));
-
-            runningFrames.Add(new Frame(Vector2.Zero, new Rectangle(24, 19, 16, 16)));
-            runningFrames.Add(new Frame(Vector2.Zero, new Rectangle(68, 19, 16, 16)));
-
-            jumpFrame = new Frame(Vector2.Zero, new Rectangle(113, 563, 22, 19));
-            crouchFrame = new Frame(Vector2.Zero, new Rectangle(74, 228, 16, 16));
-        }
-
-        protected override void Update(GameTime gameTime)
-        {
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
-                Exit();
-
-            // TODO: Add your update logic here
-
+            kirbySpeedY += gravity;
             if (Keyboard.GetState().IsKeyDown(Keys.Up))
             {
                 upPressed = true;
@@ -126,14 +65,16 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             {
                 idle++;
             }
-            if (Keyboard.GetState().IsKeyUp(Keys.Up) && upPressed)
+            if (Keyboard.GetState().IsKeyUp(Keys.Up) && upPressed && jumpCount < 2)
             {
+                jumpCount++;
                 goUp = true;
-                gravity = -gravity;
+                kirbySpeedY = -7;
                 idle = 0;
                 running = 0;
                 upPressed = false;
             }
+            Kirby.Position.Y += kirbySpeedY;
             if (Keyboard.GetState().IsKeyDown(Keys.Down))
             {
                 crouch = true;
@@ -192,12 +133,9 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 run = false;
             }
 
-
-            //Jump();
-
             if (idle > 3)
             {
-                elapsedIdleTime += gameTime.ElapsedGameTime;
+                elapsedIdleTime += time.ElapsedGameTime;
                 if (elapsedIdleTime > updateIdleTime)
                 {
                     elapsedIdleTime = TimeSpan.Zero;
@@ -215,7 +153,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             }
             if (run)
             {
-                elapsedRunningTime += gameTime.ElapsedGameTime;
+                elapsedRunningTime += time.ElapsedGameTime;
                 if (elapsedRunningTime > updateRunningTime)
                 {
                     elapsedRunningTime = TimeSpan.Zero;
@@ -230,42 +168,73 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 }
             }
 
-            if (Kirby.Position.Y < GraphicsDevice.Viewport.Height - 32 && Kirby.Position.Y > 0)
+            if (Kirby.Position.Y >= GraphicsDevice.Viewport.Height - 32)
             {
-                Kirby.Position.Y += gravity;
+                Kirby.Position.Y = GraphicsDevice.Viewport.Height - 32;
+                goUp = false;
+                jumpCount = 0;
             }
-
-            if (goUp)
+            else if (Kirby.Position.Y <= 0)
             {
-                gravity -= 2;
-                if (gravity == -20)
-                {
-                    gravity = 2;
-                    goUp = false;
-                    jumpCount--;
-                }           
+                Kirby.Position.Y = 0;
             }
-
-            /*if (goUp == false && Kirby.Position.Y < GraphicsDevice.Viewport.Height - 32)
-            {
-                Kirby.Position.Y += 6;
-                jump = true;
-                
-            }
-            if (Kirby.Position.Y < GraphicsDevice.Viewport.Height - 32)
-            {
-                jump = false;
-            }*/
 
             if (Kirby.Position.X < 0)
             {
                 Kirby.Position.X = 0;
             }
-            if (Kirby.Position.X + 32 > GraphicsDevice.Viewport.Width)
+            else if (Kirby.Position.X + 32 > GraphicsDevice.Viewport.Width)
             {
                 Kirby.Position.X = GraphicsDevice.Viewport.Width - 32;
             }
 
+        }
+
+        public Game1()
+        {
+            gfx = new GraphicsDeviceManager(this);
+            Content.RootDirectory = "Content";
+            IsMouseVisible = false;
+        }
+
+        protected override void Initialize()
+        {
+            // TODO: Add your initialization logic here
+
+            base.Initialize();
+        }
+
+        protected override void LoadContent()
+        {
+            
+            spriteBatch = new SpriteBatch(GraphicsDevice);
+
+            SpriteSheet = Content.Load<Texture2D>("kirby");
+
+            Kirby = new Sprite(new Vector2(0, GraphicsDevice.Viewport.Height - 32), Color.White, Content.Load<Texture2D>("kirby"));
+
+
+            idleFrames.Add(new Frame(Vector2.Zero, new Rectangle(149, 126, 16, 16)));
+            idleFrames.Add(new Frame(Vector2.Zero, new Rectangle(191, 126, 16, 16)));
+            idleFrames.Add(new Frame(Vector2.Zero, new Rectangle(171, 126, 16, 16)));
+            idleFrames.Add(new Frame(Vector2.Zero, new Rectangle(191, 126, 16, 16)));
+            idleFrames.Add(new Frame(Vector2.Zero, new Rectangle(211, 126, 16, 16)));
+
+            runningFrames.Add(new Frame(Vector2.Zero, new Rectangle(24, 19, 16, 16)));
+            runningFrames.Add(new Frame(Vector2.Zero, new Rectangle(68, 19, 16, 16)));
+
+            jumpFrame = new Frame(Vector2.Zero, new Rectangle(113, 563, 22, 19));
+            fallFrame = new Frame(Vector2.Zero, new Rectangle(149, 563, 16, 18));
+            crouchFrame = new Frame(Vector2.Zero, new Rectangle(74, 228, 16, 16));
+        }
+
+        protected override void Update(GameTime gameTime)
+        {
+            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
+                Exit();
+
+            
+          
             base.Update(gameTime);
         }
 
@@ -273,17 +242,20 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
-            // TODO: Add your drawing code here
             spriteBatch.Begin();
-            if (jump)
+            if (goUp)
             {
                 spriteBatch.Draw(SpriteSheet, Kirby.Position, jumpFrame.SourceRectangle, Color.White, 0f, jumpFrame.Origin, 2f, direction, 0f);
             }
+            //else if (gravity > 0 && Kirby.Position.Y > GraphicsDevice.Viewport.Height - 32)
+            //{
+            //    spriteBatch.Draw(SpriteSheet, Kirby.Position, fallFrame.SourceRectangle, Color.White, 0f, fallFrame.Origin, 2f, direction, 0f);
+            //}
             else if (idle > 3)
             {
                 spriteBatch.Draw(SpriteSheet, Kirby.Position, idleFrames[currentIdleFrame].SourceRectangle, Color.White, 0f, idleFrames[currentIdleFrame].Origin, 2f, direction, 0f);
             }
-            else if (run && !jump)
+            else if (run && !goUp && !crouch)
             {
                 spriteBatch.Draw(SpriteSheet, Kirby.Position, runningFrames[currentRunningFrame].SourceRectangle, Color.White, 0f, runningFrames[currentRunningFrame].Origin, 2f, direction, 0f);
             }
