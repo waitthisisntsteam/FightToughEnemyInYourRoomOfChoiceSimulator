@@ -12,10 +12,17 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
     {
         private GraphicsDeviceManager gfx;
         private SpriteBatch spriteBatch;
+        private Texture2D SpriteSheet;
 
         private List<Rectangle> hitBoxes = new List<Rectangle>();
 
-        private Rectangle FloorHB;
+        Character Kirby;
+        List<Frame> kirbyIdleFrames;
+        List<Frame> kirbyRunningFrames;
+        Frame kirbyJumpFrame;
+        Frame kirbyCrouchFrame;
+
+        /*private Rectangle FloorHB;
 
         private Sprite Kirby;
         private Rectangle KirbyHB;
@@ -35,13 +42,13 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         private int jumpCount = 0;
         bool upPressed = false;
 
-        private TimeSpan updateRunningTime = TimeSpan.FromMilliseconds(150);
+        private TimeSpan updateRunningTime = TimeSpan.FromMilliseconds(400);
         private TimeSpan elapsedRunningTime = TimeSpan.Zero;
         private bool run = false;
         private int running = 0;
         private int currentRunningFrame = 0;
 
-        private TimeSpan updateIdleTime = TimeSpan.FromMilliseconds(400);
+        private TimeSpan updateIdleTime = TimeSpan.FromMilliseconds(500);
         private TimeSpan elapsedIdleTime = TimeSpan.Zero;
         private int idle = 0;
         private int currentIdleFrame = 0;
@@ -53,8 +60,9 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
         private float kirbySpeedY = 0;
         private float gravity = .2f;
+        */
 
-        public void KirbyUpdate(GameTime time)
+        /*public void KirbyUpdate(GameTime time)
         {
             kirbySpeedY += gravity;
             if (Keyboard.GetState().IsKeyDown(Keys.Up))
@@ -188,7 +196,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 Kirby.Position.X = GraphicsDevice.Viewport.Width - 32;
             }
 
-        }
+        }*/
 
         public Game1()
         {
@@ -211,21 +219,26 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
             SpriteSheet = Content.Load<Texture2D>("kirby");
 
-            Kirby = new Sprite(new Vector2(0, GraphicsDevice.Viewport.Height - 32), Color.White, Content.Load<Texture2D>("kirby"));
+            kirbyIdleFrames = new List<Frame>();
+            kirbyRunningFrames = new List<Frame>();
+
+            kirbyIdleFrames.Add(new Frame(Vector2.Zero, new Rectangle(149, 126, 16, 16)));
+            kirbyIdleFrames.Add(new Frame(Vector2.Zero, new Rectangle(191, 126, 16, 16)));
+            kirbyIdleFrames.Add(new Frame(Vector2.Zero, new Rectangle(171, 126, 16, 16)));
+            kirbyIdleFrames.Add(new Frame(Vector2.Zero, new Rectangle(191, 126, 16, 16)));
+            kirbyIdleFrames.Add(new Frame(Vector2.Zero, new Rectangle(211, 126, 16, 16)));
+
+            kirbyRunningFrames.Add(new Frame(Vector2.Zero, new Rectangle(24, 19, 16, 16)));
+            kirbyRunningFrames.Add(new Frame(Vector2.Zero, new Rectangle(68, 19, 16, 16)));
+
+            kirbyJumpFrame = new Frame(Vector2.Zero, new Rectangle(113, 563, 22, 19));
+
+            //fallFrame = new Frame(Vector2.Zero, new Rectangle(149, 563, 16, 18));
+
+            kirbyCrouchFrame = new Frame(Vector2.Zero, new Rectangle(74, 228, 16, 16));
 
 
-            idleFrames.Add(new Frame(Vector2.Zero, new Rectangle(149, 126, 16, 16)));
-            idleFrames.Add(new Frame(Vector2.Zero, new Rectangle(191, 126, 16, 16)));
-            idleFrames.Add(new Frame(Vector2.Zero, new Rectangle(171, 126, 16, 16)));
-            idleFrames.Add(new Frame(Vector2.Zero, new Rectangle(191, 126, 16, 16)));
-            idleFrames.Add(new Frame(Vector2.Zero, new Rectangle(211, 126, 16, 16)));
-
-            runningFrames.Add(new Frame(Vector2.Zero, new Rectangle(24, 19, 16, 16)));
-            runningFrames.Add(new Frame(Vector2.Zero, new Rectangle(68, 19, 16, 16)));
-
-            jumpFrame = new Frame(Vector2.Zero, new Rectangle(113, 563, 22, 19));
-            fallFrame = new Frame(Vector2.Zero, new Rectangle(149, 563, 16, 18));
-            crouchFrame = new Frame(Vector2.Zero, new Rectangle(74, 228, 16, 16));
+            Kirby = new Character(new Sprite(new Vector2(0, GraphicsDevice.Viewport.Height - 32), Color.White, Content.Load<Texture2D>("kirby")), 4f, 0.2f, kirbyIdleFrames, kirbyRunningFrames, kirbyJumpFrame, kirbyCrouchFrame);
         }
 
         protected override void Update(GameTime gameTime)
@@ -233,7 +246,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
-            
+            Kirby.Update(GraphicsDevice, gameTime);
           
             base.Update(gameTime);
         }
@@ -243,25 +256,25 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
             spriteBatch.Begin();
-            if (goUp)
+            if (Kirby.getState() == "jumping")
             {
-                spriteBatch.Draw(SpriteSheet, Kirby.Position, jumpFrame.SourceRectangle, Color.White, 0f, jumpFrame.Origin, 2f, direction, 0f);
+                spriteBatch.Draw(SpriteSheet, Kirby.getCharacterPosition(), kirbyJumpFrame.SourceRectangle, Color.White, 0f, kirbyJumpFrame.Origin, 2f, Kirby.getDirection(), 0f);
             }
             //else if (gravity > 0 && Kirby.Position.Y > GraphicsDevice.Viewport.Height - 32)
             //{
             //    spriteBatch.Draw(SpriteSheet, Kirby.Position, fallFrame.SourceRectangle, Color.White, 0f, fallFrame.Origin, 2f, direction, 0f);
             //}
-            else if (idle > 3)
+            else if (Kirby.getState() == "idling")
             {
-                spriteBatch.Draw(SpriteSheet, Kirby.Position, idleFrames[currentIdleFrame].SourceRectangle, Color.White, 0f, idleFrames[currentIdleFrame].Origin, 2f, direction, 0f);
+                spriteBatch.Draw(SpriteSheet, Kirby.getCharacterPosition(), kirbyIdleFrames[Kirby.getCurrentFrame()].SourceRectangle, Color.White, 0f, kirbyIdleFrames[Kirby.getCurrentFrame()].Origin, 2f, Kirby.getDirection(), 0f);
             }
-            else if (run && !goUp && !crouch)
+            else if (Kirby.getState() == "running")
             {
-                spriteBatch.Draw(SpriteSheet, Kirby.Position, runningFrames[currentRunningFrame].SourceRectangle, Color.White, 0f, runningFrames[currentRunningFrame].Origin, 2f, direction, 0f);
+                spriteBatch.Draw(SpriteSheet, Kirby.getCharacterPosition(), kirbyRunningFrames[Kirby.getCurrentFrame()].SourceRectangle, Color.White, 0f, kirbyRunningFrames[Kirby.getCurrentFrame()].Origin, 2f, Kirby.getDirection(), 0f);
             }
-            else if (crouch)
+            else if (Kirby.getState() == "crouching")
             {
-                spriteBatch.Draw(SpriteSheet, Kirby.Position, crouchFrame.SourceRectangle, Color.White, 0f, crouchFrame.Origin, 2f, direction, 0f);
+                spriteBatch.Draw(SpriteSheet, Kirby.getCharacterPosition(), kirbyCrouchFrame.SourceRectangle, Color.White, 0f, kirbyCrouchFrame.Origin, 2f, Kirby.getDirection(), 0f);
             }
 
             spriteBatch.End();

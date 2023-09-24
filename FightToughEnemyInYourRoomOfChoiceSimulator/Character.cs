@@ -11,44 +11,44 @@ using System.Security.Permissions;
 
 namespace FightToughEnemyInYourRoomOfChoiceSimulator
 {
+    enum CharacterState
+    { 
+        Jumping,
+        Crouching,
+        Idling,
+        Running
+    }
+
+
     public class Character
     {
         private Sprite charSprite;
-        private int charXSpeed;
-        private int charYSpeed;
+        private float charXSpeed;
+        private float charYSpeed;
+
+        CharacterState characterState;
 
         private List<Frame> idleFrames;
         private List<Frame> runningFrames;
-
+        private Frame crouchFrame;
+        private Frame jumpFrame;
 
         private int jumpCount;
         private bool upPressed;
-        private bool goUp;
-        private float speed;
         private float gravity;
+
+        private int currentFrame;
+        private TimeSpan updateTime;
+        private TimeSpan elapsedTime;
+
+        private int idle;
+        private int run;
+
         private SpriteEffects direction;
 
-        private TimeSpan updateIdleTime;
-        private TimeSpan elapsedIdleTime;
-        private int idle;
-        private int currentIdleFrame;
+        //private Rectangle hitbox;
 
-        private TimeSpan updateRunTime;
-        private TimeSpan elapsedRunTime;
-        private bool runDraw;
-        private int run;
-        private int currentRunFrame;
-
-        private TimeSpan updateCrouchTime;
-        private TimeSpan elapsedCrouchTime;
-        private bool crouch = false;
-        private Frame crouchFrame;
-
-        private Rectangle hitbox;
-
-
-
-        public Character(Sprite charSprite, int charXSpeed, int charYSpeed, List<Frame> idleFrames, List<Frame> runningFrames)
+        public Character(Sprite charSprite, float charXSpeed, float charYSpeed, List<Frame> idleFrames, List<Frame> runningFrames, Frame jumpFrame, Frame crouchFrame)
         {
             this.charSprite = charSprite;
             this.charXSpeed = charXSpeed;
@@ -56,148 +56,133 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
             this.idleFrames = idleFrames;
             this.runningFrames = runningFrames;
-
+            this.crouchFrame = crouchFrame;
+            this.jumpFrame = jumpFrame;
 
             jumpCount = 0;
             upPressed = false;
-            goUp = false;
-            speed = 0f;
             gravity = 0.2f;
 
             direction = SpriteEffects.None;
 
-            updateIdleTime = TimeSpan.FromMilliseconds(400);
-            elapsedIdleTime = TimeSpan.Zero;                                
             idle = 0;
-            currentIdleFrame = 0;
-
-            updateRunTime = TimeSpan.FromMilliseconds(150);
-            elapsedRunTime = TimeSpan.Zero;
-            runDraw = false;
             run = 0;
-            currentRunFrame = 0;
+            currentFrame = 0;
+            updateTime = TimeSpan.FromMilliseconds(400);
+            elapsedTime = TimeSpan.Zero;
 
-            hitbox = new Rectangle(charSprite.Position.X, charSprite.Position.Y, 32, 32);
+            characterState = CharacterState.Idling;
+
+            //hitbox = new Rectangle((int)charSprite.Position.X, (int)charSprite.Position.Y, 32, 32);
         }
 
-        public void Update()
+        public void Update(GraphicsDevice graphicsDevice, GameTime gameTime)
         {
-            speed += gravity;
+            charYSpeed += gravity;
             if (Keyboard.GetState().IsKeyDown(Keys.Up))
             {
                 upPressed = true;
             }
             else
             {
+                characterState = CharacterState.Idling;
                 idle++;
             }
             if (Keyboard.GetState().IsKeyUp(Keys.Up) && upPressed && jumpCount < 2)
             {
                 jumpCount++;
-                goUp = true;
-                speed = -7;
+                characterState = CharacterState.Jumping;
+                charYSpeed = -7;
                 idle = 0;
                 run = 0;
                 upPressed = false;
             }
-            charSprite.Position.Y += speed;
+            charSprite.Position.Y += charYSpeed;
             if (Keyboard.GetState().IsKeyDown(Keys.Down))
             {
-                crouch = true;
+                characterState = CharacterState.Crouching;
                 run = 0;
                 idle = 0;
             }
             else
             {
+                characterState = CharacterState.Crouching;
                 idle++;
-                crouch = false;
             }
             if (Keyboard.GetState().IsKeyDown(Keys.Left))
             {
                 if (Keyboard.GetState().IsKeyDown(Keys.Down))
                 {
-                    crouch = true;
-                    charSprite.Position.X -= 2;
+                    charSprite.Position.X -= charXSpeed/2;
                 }
                 else
                 {
-                    charSprite.Position.X -= 4;
+                    charSprite.Position.X -= charXSpeed;
                 }
                 idle = 0;
                 direction = SpriteEffects.FlipHorizontally;
             }
             else
             {
+                characterState = CharacterState.Idling;
                 idle++;
             }
             if (Keyboard.GetState().IsKeyDown(Keys.Right))
             {
                 if (Keyboard.GetState().IsKeyDown(Keys.Down))
                 {
-                    crouch = true;
-                    Kirby.Position.X += 2;
+                    charSprite.Position.X += charXSpeed/2;
                 }
                 else
                 {
-                    charSprite.Position.X += 4;
+                    charSprite.Position.X += charXSpeed;
                 }
                 idle = 0;
                 direction = SpriteEffects.None;
             }
             else
             {
+                characterState = CharacterState.Idling;
                 idle++;
             }
 
             if (Keyboard.GetState().IsKeyDown(Keys.Right) || Keyboard.GetState().IsKeyDown(Keys.Left))
             {
-                run = true;
+                characterState = CharacterState.Running;
+                run++;
             }
             else
             {
-
-                run = false;
+                characterState = CharacterState.Running;
+                run++;
             }
 
-            if (idle > 3)
+            if (idle > 3 || characterState == CharacterState.Running)
             {
-                elapsedIdleTime += gameTime.ElapsedGameTime;
-                if (elapsedIdleTime > updateIdleTime)
+                elapsedTime += gameTime.ElapsedGameTime;
+                if (elapsedTime > updateTime)
                 {
-                    elapsedIdleTime = TimeSpan.Zero;
-                    currentIdleFrame++;
-                    if (currentIdleFrame == 4)
+                    elapsedTime = TimeSpan.Zero;
+                    currentFrame++;
+                    if (idle > 0 && currentFrame == idleFrames.Count)
                     {
-                        currentIdleFrame = 0;
+                        currentFrame = 0;
+                    }
+                    if (run > 0 && currentFrame == runningFrames.Count)
+                    {
+                        currentFrame = 0;
                     }
                 }
 
             }
             else
             {
-                currentIdleFrame = 0;
-            }
-            if (run)
-            {
-                elapsedRunTime += gameTime.ElapsedGameTime;
-                if (elapsedRunTime > updateRunTime)
-                {
-                    elapsedRunTime = TimeSpan.Zero;
-                    if (currentRunFrame == 1)
-                    {
-                        currentRunFrame--;
-                    }
-                    if (currentRunFrame == 0)
-                    {
-                        currentRunFrame++;
-                    }
-                }
+                currentFrame = 0;
             }
 
-            if (charSprite.Position.Y >= GraphicsDevice.Viewport.Height - 32)
+            if (charSprite.Position.Y >= graphicsDevice.Viewport.Height - 32)
             {
-                charSprite.Position.Y = GraphicsDevice.Viewport.Height - 32;
-                goUp = false;
+                charSprite.Position.Y = graphicsDevice.Viewport.Height - 32;
                 jumpCount = 0;
             }
             else if (charSprite.Position.Y <= 0)
@@ -209,10 +194,46 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             {
                 charSprite.Position.X = 0;
             }
-            else if (charSprite.Position.X + 32 > GraphicsDevice.Viewport.Width)
+            else if (charSprite.Position.X + 32 > graphicsDevice.Viewport.Width)
             {
-                charSprite.Position.X = GraphicsDevice.Viewport.Width - 32;
+                charSprite.Position.X = graphicsDevice.Viewport.Width - 32;
             }
+        }
+
+        public string getState()
+        {
+            if (characterState == CharacterState.Jumping)
+            {
+                return "jumping";
+            }
+            else if (characterState == CharacterState.Crouching)
+            {
+                return "crouhing";
+            }
+            else if (characterState == CharacterState.Idling)
+            {
+                return "idling";
+            }
+            else if (characterState == CharacterState.Running)
+            {
+                return "running";
+            }
+            return "how did you break the code ???";
+        }
+
+        public SpriteEffects getDirection()
+        {
+            return direction;
+        }
+
+        public Vector2 getCharacterPosition()
+        {
+            return charSprite.Position;
+        }
+
+        public int getCurrentFrame()
+        {
+            return currentFrame;
         }
     }
 }
