@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace FightToughEnemyInYourRoomOfChoiceSimulator
 {
-    public  class Kirby
+    public  class character
     {
     }
 }

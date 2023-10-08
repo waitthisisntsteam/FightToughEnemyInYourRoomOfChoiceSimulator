@@ -19,8 +19,10 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         Character Kirby;
         List<Frame> kirbyIdleFrames;
         List<Frame> kirbyRunningFrames;
-        Frame kirbyJumpFrame;
-        Frame kirbyCrouchFrame;
+        List<Frame> kirbyJumpingFrames;
+        List<Frame> kirbyDoubleJumpingFrames;
+        List<Frame> kirbyCrouchingFrames;
+        List<Frame> kirbyCrouchMovingFrames;
 
         /*private Rectangle FloorHB;
 
@@ -221,6 +223,10 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
             kirbyIdleFrames = new List<Frame>();
             kirbyRunningFrames = new List<Frame>();
+            kirbyJumpingFrames = new List<Frame>();
+            kirbyDoubleJumpingFrames = new List<Frame>();
+            kirbyCrouchingFrames = new List<Frame>();
+            kirbyCrouchMovingFrames = new List<Frame>();         
 
             kirbyIdleFrames.Add(new Frame(Vector2.Zero, new Rectangle(149, 126, 16, 16)));
             kirbyIdleFrames.Add(new Frame(Vector2.Zero, new Rectangle(191, 126, 16, 16)));
@@ -229,16 +235,24 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             kirbyIdleFrames.Add(new Frame(Vector2.Zero, new Rectangle(211, 126, 16, 16)));
 
             kirbyRunningFrames.Add(new Frame(Vector2.Zero, new Rectangle(24, 19, 16, 16)));
+            kirbyRunningFrames.Add(new Frame(Vector2.Zero, new Rectangle(45, 19, 20, 16)));
             kirbyRunningFrames.Add(new Frame(Vector2.Zero, new Rectangle(68, 19, 16, 16)));
+            kirbyRunningFrames.Add(new Frame(Vector2.Zero, new Rectangle(89, 19, 21, 16)));
 
-            kirbyJumpFrame = new Frame(Vector2.Zero, new Rectangle(113, 563, 22, 19));
+            kirbyJumpingFrames.Add(new Frame(Vector2.Zero, new Rectangle(113, 563, 22, 19)));
 
-            //fallFrame = new Frame(Vector2.Zero, new Rectangle(149, 563, 16, 18));
+            kirbyDoubleJumpingFrames.Add(new Frame(Vector2.Zero, new Rectangle(141, 564, 21, 19)));
+            kirbyDoubleJumpingFrames.Add(new Frame(Vector2.Zero, new Rectangle(113, 563, 22, 19)));
+            kirbyDoubleJumpingFrames.Add(new Frame(Vector2.Zero, new Rectangle(113, 563, 22, 19)));
 
-            kirbyCrouchFrame = new Frame(Vector2.Zero, new Rectangle(74, 228, 16, 16));
+            kirbyCrouchingFrames.Add(new Frame(Vector2.Zero, new Rectangle(74, 228, 16, 16)));
 
+            kirbyCrouchMovingFrames.Add(new Frame(Vector2.Zero, new Rectangle(100, 228, 17, 16)));
+            kirbyCrouchMovingFrames.Add(new Frame(Vector2.Zero, new Rectangle(127, 228, 17, 16)));
+            kirbyCrouchMovingFrames.Add(new Frame(Vector2.Zero, new Rectangle(74, 228, 16, 16)));
 
-            Kirby = new Character(new Sprite(new Vector2(0, GraphicsDevice.Viewport.Height - 32), Color.White, Content.Load<Texture2D>("kirby")), 4f, 0.2f, kirbyIdleFrames, kirbyRunningFrames, kirbyJumpFrame, kirbyCrouchFrame);
+            //Kirby = new Character(new Sprite(new Vector2(0, GraphicsDevice.Viewport.Height - 32), Color.White, Content.Load<Texture2D>("kirby")), 4f, 0.2f, kirbyIdleFrames, kirbyRunningFrames, kirbyJumpingFrames, kirbyCrouchingFrames);
+            Kirby = new Character(new Vector2(0, GraphicsDevice.Viewport.Height - 32), Content.Load<Texture2D>("kirby"), new List<List<Frame>>() { kirbyJumpingFrames, kirbyDoubleJumpingFrames, kirbyCrouchingFrames, kirbyCrouchMovingFrames, kirbyIdleFrames, kirbyRunningFrames }, 4f, 0.2f);
         }
 
         protected override void Update(GameTime gameTime)
@@ -256,26 +270,8 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
             spriteBatch.Begin();
-            if (Kirby.getState() == "jumping")
-            {
-                spriteBatch.Draw(SpriteSheet, Kirby.getCharacterPosition(), kirbyJumpFrame.SourceRectangle, Color.White, 0f, kirbyJumpFrame.Origin, 2f, Kirby.getDirection(), 0f);
-            }
-            //else if (gravity > 0 && Kirby.Position.Y > GraphicsDevice.Viewport.Height - 32)
-            //{
-            //    spriteBatch.Draw(SpriteSheet, Kirby.Position, fallFrame.SourceRectangle, Color.White, 0f, fallFrame.Origin, 2f, direction, 0f);
-            //}
-            else if (Kirby.getState() == "idling")
-            {
-                spriteBatch.Draw(SpriteSheet, Kirby.getCharacterPosition(), kirbyIdleFrames[Kirby.getCurrentFrame()].SourceRectangle, Color.White, 0f, kirbyIdleFrames[Kirby.getCurrentFrame()].Origin, 2f, Kirby.getDirection(), 0f);
-            }
-            else if (Kirby.getState() == "running")
-            {
-                spriteBatch.Draw(SpriteSheet, Kirby.getCharacterPosition(), kirbyRunningFrames[Kirby.getCurrentFrame()].SourceRectangle, Color.White, 0f, kirbyRunningFrames[Kirby.getCurrentFrame()].Origin, 2f, Kirby.getDirection(), 0f);
-            }
-            else if (Kirby.getState() == "crouching")
-            {
-                spriteBatch.Draw(SpriteSheet, Kirby.getCharacterPosition(), kirbyCrouchFrame.SourceRectangle, Color.White, 0f, kirbyCrouchFrame.Origin, 2f, Kirby.getDirection(), 0f);
-            }
+
+            Kirby.Draw(spriteBatch);
 
             spriteBatch.End();
 

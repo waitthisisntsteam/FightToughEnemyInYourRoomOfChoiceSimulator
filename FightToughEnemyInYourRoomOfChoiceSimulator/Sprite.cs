@@ -13,12 +13,14 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         public Vector2 Position;
         public Color Tint;
         public Texture2D Image;
+        public SpriteEffects Direction;
 
-        public Sprite(Vector2 Position, Color Tint, Texture2D Image)
+        public Sprite(Vector2 Position, Color Tint, Texture2D Image, SpriteEffects Direction)
         {
             this.Position = Position;
             this.Tint = Tint;
             this.Image = Image;
+            this.Direction = Direction;
         }
     }
 }
