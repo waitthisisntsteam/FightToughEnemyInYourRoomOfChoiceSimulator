@@ -13,13 +13,13 @@ using System.Security.Permissions;
 namespace FightToughEnemyInYourRoomOfChoiceSimulator
 {
     public enum CharacterState
-    { 
+    {
         Jumping,
         DoubleJumping,
         Crouching,
         CrouchMoving,
         Idling,
-        Running       
+        Running
     }
 
     public class Character : AnimatedSprite
@@ -35,7 +35,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         //private Rectangle hitbox => new Rectangle((int)Position.X, (int)Position.Y, Image.Width * 2, Image.Height * 2);
 
         public Character(Vector2 Position, Texture2D Image, List<List<Frame>> Frames, float charXSpeed, float charYSpeed)
-        
+
             : base(Position, Color.White, Image, SpriteEffects.None)
         {
             for (int i = 0; i < Frames.Count; i++)
@@ -54,12 +54,12 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             characterState = CharacterState.Idling;
         }
 
-        public void Update(GraphicsDevice graphicsDevice, GameTime gameTime)
+        public void Update(/*GraphicsDevice graphicsDevice,*/ GameTime gameTime, List<Rectangle> hitBoxes)
         {
-            currentFrame++;           
+            currentFrame++;
             if (characterState == CharacterState.Crouching)
             {
-                charYSpeed += gravity*4;
+                charYSpeed += gravity * 4;
             }
             else
             {
@@ -76,7 +76,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             {
                 jumpCount++;
                 if (jumpCount == 1)
-                { 
+                {
                     characterState = CharacterState.Jumping;
                 }
                 if (jumpCount == 2)
@@ -109,7 +109,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             {
                 if (Keyboard.GetState().IsKeyDown(Keys.Down))
                 {
-                    Position.X -= charXSpeed/2;
+                    Position.X -= charXSpeed / 2;
                     if (jumpCount == 0)
                     {
                         characterState = CharacterState.CrouchMoving;
@@ -132,7 +132,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             {
                 if (Keyboard.GetState().IsKeyDown(Keys.Down))
                 {
-                    Position.X += charXSpeed/2;
+                    Position.X += charXSpeed / 2;
                     if (jumpCount == 0)
                     {
                         characterState = CharacterState.CrouchMoving;
@@ -156,25 +156,85 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 characterState = CharacterState.Idling;
             }
 
-            if (Position.Y >= graphicsDevice.Viewport.Height - 32)
+            Rectangle characterHB = new Rectangle((int)Position.X, (int)Position.Y, 32, 32);
+
+            foreach (Rectangle hB in hitBoxes)
             {
-                Position.Y = graphicsDevice.Viewport.Height - 32;
+                if (characterHB.Intersects(hB))
+                {
+                    /*
+                    if (characterHB.X <= hB.X + hB.Width)
+                    {
+                        Position.X = hB.X + hB.Width + 1;
+                    }
+                    else if (characterHB.X + characterHB.Width >= hB.X)
+                    {
+                        Position.X = hB.X - characterHB.Width - 1;
+                    }
+
+                    if (characterHB.Y + characterHB.Height >= hB.Y)
+                    {
+                        Position.Y = hB.Y - characterHB.Height - 1;
+                    }
+                    else if (characterHB.Y <= hB.Y + hB.Height)
+                    {
+                        Position.Y = hB.Y + hB.Height + 1;
+                    }*/
+
+                    if (characterHB.Y + characterHB.Height >= hB.Y) //on top
+                    {
+                        if (charYSpeed > 0)
+                        {
+                            if (characterHB.X <= hB.X + hB.Width && characterHB.X + characterHB.Width >= hB.X)
+                            {
+                                Position.Y = hB.Y - characterHB.Height;
+                                jumpCount = 0;
+                            }
+                        }
+                    }
                 
-                jumpCount = 0;
-            }
-            else if (Position.Y <= 0)
-            {
-                Position.Y = 0;
+
+                    else if (Direction == SpriteEffects.None) //right of character hits left of hitbox
+                    {
+                        Position.X -= charXSpeed / 2;
+                    }
+                    else if (Direction == SpriteEffects.FlipHorizontally) //left of character hits right of hitbox
+                    {
+                        Position.X += charXSpeed / 2;
+                    }
+                }
             }
 
-            if (Position.X < 0)
-            {
-                Position.X = 0;
-            }
-            else if (Position.X + 32 > graphicsDevice.Viewport.Width)
-            {
-                Position.X = graphicsDevice.Viewport.Width - 32;
-            }
+                //if (characterHB.Y + characterHB.Height >= hB.Y)
+                //{
+                //    if (charYSpeed > 0)
+                //    {
+                //        if (characterHB.X <= hB.X + hB.Width && characterHB.X + characterHB.Width >= hB.X)
+                //        {
+                //            Position.Y = hB.Y + hB.Height - characterHB.Height;
+                //            jumpCount = 0;
+                //        }
+                //    }
+
+                //    if (characterHB.X <= hB.X + hB.Width)
+                //    {
+                //        Position.X = hB.X + hB.Width + 1;
+                //    }
+                //    else if (characterHB.X + characterHB.Width >= hB.X)
+                //    {
+                //        Position.X = hB.X - characterHB.Width-1;
+                //    }
+                //}
+
+                /*
+                else if (characterHB.X <= hB.X + hB.Width && characterHB.Y + characterHB.Height < hB.Y)
+                {
+                    Position.X = hB.X + hB.Width;
+                }
+                else if (characterHB.X + characterHB.Width >= hB.X && characterHB.Y + characterHB.Height < hB.Y)
+                {
+                    Position.X = hB.X - characterHB.Width;               
+                }*/
         }
     }
 }

@@ -26,11 +26,11 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
         public void Draw(SpriteBatch spriteBatch)
         {
-            if(currentFrame/32 >= map[characterState].Count)
+            if(currentFrame/24 >= map[characterState].Count)
             {
                 currentFrame = 0;
             }
-            spriteBatch.Draw(Image, Position, map[characterState][currentFrame/32].SourceRectangle, Color.White, 0f, map[characterState][currentFrame/32].Origin, 2f, Direction, 0f);
+            spriteBatch.Draw(Image, Position, map[characterState][currentFrame/24].SourceRectangle, Color.White, 0f, map[characterState][currentFrame/24].Origin, 2f, Direction, 0f);
         }
     }
 }
