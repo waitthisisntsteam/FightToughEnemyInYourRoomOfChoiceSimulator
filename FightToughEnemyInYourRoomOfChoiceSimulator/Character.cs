@@ -32,8 +32,6 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         private bool idle;
         private float gravity;
 
-        //private Rectangle hitbox => new Rectangle((int)Position.X, (int)Position.Y, Image.Width * 2, Image.Height * 2);
-
         public Character(Vector2 Position, Texture2D Image, List<List<Frame>> Frames, float charXSpeed, float charYSpeed)
 
             : base(Position, Color.White, Image, SpriteEffects.None)
@@ -54,7 +52,10 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             characterState = CharacterState.Idling;
         }
 
-        public void Update(/*GraphicsDevice graphicsDevice,*/ GameTime gameTime, List<Rectangle> hitBoxes)
+
+
+
+        public void Update(GameTime gameTime, List<Rectangle> hitBoxes)
         {
             currentFrame++;
             if (characterState == CharacterState.Crouching)
@@ -66,6 +67,10 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 charYSpeed += gravity;
             }
             idle = true;
+
+
+
+
 
             if (Keyboard.GetState().IsKeyDown(Keys.Up))
             {
@@ -156,85 +161,34 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 characterState = CharacterState.Idling;
             }
 
-            Rectangle characterHB = new Rectangle((int)Position.X, (int)Position.Y, 32, 32);
 
+
+
+            Rectangle characterHB = new Rectangle((int)Position.X, (int)Position.Y, 32, 32);
             foreach (Rectangle hB in hitBoxes)
             {
                 if (characterHB.Intersects(hB))
                 {
-                    /*
-                    if (characterHB.X <= hB.X + hB.Width)
+                    if (characterHB.Bottom >= hB.Top && characterHB.Left >= hB.Left && characterHB.Right <= hB.Right && charYSpeed <= 0)
                     {
-                        Position.X = hB.X + hB.Width + 1;
+                        Position.Y = hB.Top - characterHB.Height;
+                        charYSpeed = 0;
+                        jumpCount = 0;
                     }
-                    else if (characterHB.X + characterHB.Width >= hB.X)
+                    else if (characterHB.Top <= hB.Bottom && characterHB.Left >= hB.Left && characterHB.Right <= hB.Right && charYSpeed >= 0)
                     {
-                        Position.X = hB.X - characterHB.Width - 1;
+                        Position.Y = hB.Bottom;
                     }
-
-                    if (characterHB.Y + characterHB.Height >= hB.Y)
+                    else if (characterHB.Left <= hB.Right && Direction == SpriteEffects.FlipHorizontally && charYSpeed <= 0)
                     {
-                        Position.Y = hB.Y - characterHB.Height - 1;
+                        Position.X = hB.Right + 1;
                     }
-                    else if (characterHB.Y <= hB.Y + hB.Height)
+                    else if (characterHB.Right >= hB.Left && Direction == SpriteEffects.None && charYSpeed <= 0)
                     {
-                        Position.Y = hB.Y + hB.Height + 1;
-                    }*/
-
-                    if (characterHB.Y + characterHB.Height >= hB.Y) //on top
-                    {
-                        if (charYSpeed > 0)
-                        {
-                            if (characterHB.X <= hB.X + hB.Width && characterHB.X + characterHB.Width >= hB.X)
-                            {
-                                Position.Y = hB.Y - characterHB.Height;
-                                jumpCount = 0;
-                            }
-                        }
-                    }
-                
-
-                    else if (Direction == SpriteEffects.None) //right of character hits left of hitbox
-                    {
-                        Position.X -= charXSpeed / 2;
-                    }
-                    else if (Direction == SpriteEffects.FlipHorizontally) //left of character hits right of hitbox
-                    {
-                        Position.X += charXSpeed / 2;
+                        Position.X = hB.Left - characterHB.Width - 1;
                     }
                 }
             }
-
-                //if (characterHB.Y + characterHB.Height >= hB.Y)
-                //{
-                //    if (charYSpeed > 0)
-                //    {
-                //        if (characterHB.X <= hB.X + hB.Width && characterHB.X + characterHB.Width >= hB.X)
-                //        {
-                //            Position.Y = hB.Y + hB.Height - characterHB.Height;
-                //            jumpCount = 0;
-                //        }
-                //    }
-
-                //    if (characterHB.X <= hB.X + hB.Width)
-                //    {
-                //        Position.X = hB.X + hB.Width + 1;
-                //    }
-                //    else if (characterHB.X + characterHB.Width >= hB.X)
-                //    {
-                //        Position.X = hB.X - characterHB.Width-1;
-                //    }
-                //}
-
-                /*
-                else if (characterHB.X <= hB.X + hB.Width && characterHB.Y + characterHB.Height < hB.Y)
-                {
-                    Position.X = hB.X + hB.Width;
-                }
-                else if (characterHB.X + characterHB.Width >= hB.X && characterHB.Y + characterHB.Height < hB.Y)
-                {
-                    Position.X = hB.X - characterHB.Width;               
-                }*/
         }
     }
 }

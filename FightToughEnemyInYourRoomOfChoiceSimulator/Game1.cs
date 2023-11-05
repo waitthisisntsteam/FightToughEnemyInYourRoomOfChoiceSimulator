@@ -79,18 +79,18 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             kirbyCrouchMovingFrames.Add(new Frame(Vector2.Zero, new Rectangle(127, 228, 17, 16)));
             kirbyCrouchMovingFrames.Add(new Frame(Vector2.Zero, new Rectangle(74, 228, 16, 16)));
 
-            //Kirby = new Character(new Sprite(new Vector2(0, GraphicsDevice.Viewport.Height - 32), Color.White, Content.Load<Texture2D>("kirby")), 4f, 0.2f, kirbyIdleFrames, kirbyRunningFrames, kirbyJumpingFrames, kirbyCrouchingFrames);
+          
             Kirby = new Character(new Vector2((GraphicsDevice.Viewport.Width - 32)/2, (GraphicsDevice.Viewport.Height - 32)/2), Content.Load<Texture2D>("kirby"), new List<List<Frame>>() { kirbyJumpingFrames, kirbyDoubleJumpingFrames, kirbyCrouchingFrames, kirbyCrouchMovingFrames, kirbyIdleFrames, kirbyRunningFrames }, 4f, 0.2f);
-            //0, GraphicsDevice.Viewport.Height - 32
 
-            hitBoxes.Add(new Rectangle(-1, GraphicsDevice.Viewport.Height, GraphicsDevice.Viewport.Width + 1, 1));
-            //hitBoxes.Add(new Rectangle(200, GraphicsDevice.Viewport.Height - 50, 300, 1));
+            hitBoxes.Add(new Rectangle(200, GraphicsDevice.Viewport.Height - 200, 300, 50));
 
-            hitBoxes.Add(new Rectangle(-1, -1, 1, GraphicsDevice.Viewport.Height + 1));
-            hitBoxes.Add(new Rectangle(GraphicsDevice.Viewport.Width, -1, 1, GraphicsDevice.Viewport.Height + 1));
+            hitBoxes.Add(new Rectangle(-20, GraphicsDevice.Viewport.Height, GraphicsDevice.Viewport.Width + 40, 20)); //floor
+            hitBoxes.Add(new Rectangle(-20, -20, GraphicsDevice.Viewport.Width + 40, 20)); //roof
+            hitBoxes.Add(new Rectangle(-20, -20, 20, GraphicsDevice.Viewport.Height + 40)); //left
+            hitBoxes.Add(new Rectangle(GraphicsDevice.Viewport.Width, -20, 20, GraphicsDevice.Viewport.Height + 40)); //right
 
 
-            //hitBoxes.Add(new Rectangle(0, 0, GraphicsDevice.Viewport.Width, 1));
+           
         }
 
         protected override void Update(GameTime gameTime)
