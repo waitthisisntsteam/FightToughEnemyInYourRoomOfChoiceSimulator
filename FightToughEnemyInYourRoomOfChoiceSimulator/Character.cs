@@ -9,6 +9,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 using System.Runtime.InteropServices;
 using System.Security.Permissions;
+using System.Text.Json.Serialization.Metadata;
 
 namespace FightToughEnemyInYourRoomOfChoiceSimulator
 {
@@ -19,7 +20,8 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         Crouching,
         CrouchMoving,
         Idling,
-        Running
+        Running,
+        Falling
     }
 
     public class Character : AnimatedSprite
@@ -31,6 +33,8 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         private bool upPressed;
         private bool idle;
         private float gravity;
+
+        private bool onHitbox;
 
         public Character(Vector2 Position, Texture2D Image, List<List<Frame>> Frames, float charXSpeed, float charYSpeed)
 
@@ -49,6 +53,8 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             gravity = 0.2f;
             idle = true;
 
+            onHitbox = false;
+
             characterState = CharacterState.Idling;
         }
 
@@ -58,13 +64,16 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         public void Update(GameTime gameTime, List<Rectangle> hitBoxes)
         {
             currentFrame++;
-            if (characterState == CharacterState.Crouching)
+            if (!onHitbox)
             {
-                charYSpeed += gravity * 4;
-            }
-            else
-            {
-                charYSpeed += gravity;
+                if (characterState == CharacterState.Crouching)
+                {
+                    charYSpeed += gravity * 4;
+                }
+                else
+                {
+                    charYSpeed += gravity;
+                }
             }
             idle = true;
 
@@ -160,35 +169,49 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             {
                 characterState = CharacterState.Idling;
             }
-
+            if (charYSpeed > 1 && jumpCount == 0)
+            {
+                characterState = CharacterState.Falling;
+            }
 
 
 
             Rectangle characterHB = new Rectangle((int)Position.X, (int)Position.Y, 32, 32);
+            int noCollisionCount = 0;
             foreach (Rectangle hB in hitBoxes)
             {
                 if (characterHB.Intersects(hB))
                 {
-                    if (characterHB.Bottom >= hB.Top && characterHB.Left >= hB.Left && characterHB.Right <= hB.Right && charYSpeed <= 0)
+                    if (characterHB.Bottom >= hB.Top)
                     {
                         Position.Y = hB.Top - characterHB.Height;
+                        onHitbox = true;
                         charYSpeed = 0;
                         jumpCount = 0;
                     }
-                    else if (characterHB.Top <= hB.Bottom && characterHB.Left >= hB.Left && characterHB.Right <= hB.Right && charYSpeed >= 0)
+                    else if (characterHB.Top <= hB.Bottom)
                     {
                         Position.Y = hB.Bottom;
                     }
-                    else if (characterHB.Left <= hB.Right && Direction == SpriteEffects.FlipHorizontally && charYSpeed <= 0)
+                    else if (characterHB.Left <= hB.Right && Direction == SpriteEffects.FlipHorizontally)
                     {
-                        Position.X = hB.Right + 1;
+                        Position.X = hB.Right;
                     }
-                    else if (characterHB.Right >= hB.Left && Direction == SpriteEffects.None && charYSpeed <= 0)
+                    else if (characterHB.Right >= hB.Left && Direction == SpriteEffects.None)
                     {
-                        Position.X = hB.Left - characterHB.Width - 1;
+                        Position.X = hB.Left - characterHB.Width;
                     }
                 }
+                else
+                {
+                    noCollisionCount++;
+                }
             }
+            if (noCollisionCount == hitBoxes.Count)
+            {
+                onHitbox = false;
+            }
+
         }
     }
 }

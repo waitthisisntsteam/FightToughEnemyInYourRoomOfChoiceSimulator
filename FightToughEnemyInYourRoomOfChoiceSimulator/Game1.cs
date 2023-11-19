@@ -80,9 +80,9 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             kirbyCrouchMovingFrames.Add(new Frame(Vector2.Zero, new Rectangle(74, 228, 16, 16)));
 
           
-            Kirby = new Character(new Vector2((GraphicsDevice.Viewport.Width - 32)/2, (GraphicsDevice.Viewport.Height - 32)/2), Content.Load<Texture2D>("kirby"), new List<List<Frame>>() { kirbyJumpingFrames, kirbyDoubleJumpingFrames, kirbyCrouchingFrames, kirbyCrouchMovingFrames, kirbyIdleFrames, kirbyRunningFrames }, 4f, 0.2f);
+            Kirby = new Character(new Vector2((GraphicsDevice.Viewport.Width - 32)/2, (GraphicsDevice.Viewport.Height - 32)/2), Content.Load<Texture2D>("kirby"), new List<List<Frame>>() { kirbyJumpingFrames, kirbyDoubleJumpingFrames, kirbyCrouchingFrames, kirbyCrouchMovingFrames, kirbyIdleFrames, kirbyRunningFrames, kirbyJumpingFrames }, 4f, 0.2f);
 
-            hitBoxes.Add(new Rectangle(200, GraphicsDevice.Viewport.Height - 200, 300, 50));
+            hitBoxes.Add(new Rectangle(200, GraphicsDevice.Viewport.Height - 250, 300, 50));
 
             hitBoxes.Add(new Rectangle(-20, GraphicsDevice.Viewport.Height, GraphicsDevice.Viewport.Width + 40, 20)); //floor
             hitBoxes.Add(new Rectangle(-20, -20, GraphicsDevice.Viewport.Width + 40, 20)); //roof
