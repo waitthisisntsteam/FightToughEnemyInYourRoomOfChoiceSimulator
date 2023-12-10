@@ -14,6 +14,8 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         private SpriteBatch spriteBatch;
         private Texture2D SpriteSheet;
 
+        private Texture2D HitBoxSheet;
+
         private List<Rectangle> hitBoxes = new List<Rectangle>();
 
         Character Kirby;
@@ -44,6 +46,8 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             spriteBatch = new SpriteBatch(GraphicsDevice);
 
             SpriteSheet = Content.Load<Texture2D>("kirby");
+
+            HitBoxSheet = Content.Load<Texture2D>("hitbox");
 
             kirbyIdleFrames = new List<Frame>();
             kirbyRunningFrames = new List<Frame>();
@@ -82,12 +86,12 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
           
             Kirby = new Character(new Vector2((GraphicsDevice.Viewport.Width - 32)/2, (GraphicsDevice.Viewport.Height - 32)/2), Content.Load<Texture2D>("kirby"), new List<List<Frame>>() { kirbyJumpingFrames, kirbyDoubleJumpingFrames, kirbyCrouchingFrames, kirbyCrouchMovingFrames, kirbyIdleFrames, kirbyRunningFrames, kirbyJumpingFrames }, 4f, 0.2f);
 
-            hitBoxes.Add(new Rectangle(200, GraphicsDevice.Viewport.Height - 250, 300, 50));
+            hitBoxes.Add(new Rectangle(200, GraphicsDevice.Viewport.Height - 200, 300, 20)); //platform
 
-            hitBoxes.Add(new Rectangle(-20, GraphicsDevice.Viewport.Height, GraphicsDevice.Viewport.Width + 40, 20)); //floor
-            hitBoxes.Add(new Rectangle(-20, -20, GraphicsDevice.Viewport.Width + 40, 20)); //roof
-            hitBoxes.Add(new Rectangle(-20, -20, 20, GraphicsDevice.Viewport.Height + 40)); //left
-            hitBoxes.Add(new Rectangle(GraphicsDevice.Viewport.Width, -20, 20, GraphicsDevice.Viewport.Height + 40)); //right
+            hitBoxes.Add(new Rectangle(0, GraphicsDevice.Viewport.Height-40, GraphicsDevice.Viewport.Width + 40, 20)); //floor
+            hitBoxes.Add(new Rectangle(0, 20, GraphicsDevice.Viewport.Width + 40, 20)); //roof
+            hitBoxes.Add(new Rectangle(20, -20, 20, GraphicsDevice.Viewport.Height + 40)); //left
+            hitBoxes.Add(new Rectangle(GraphicsDevice.Viewport.Width-40, -20, 20, GraphicsDevice.Viewport.Height + 40)); //right
 
 
            
@@ -110,6 +114,12 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             spriteBatch.Begin();
 
             Kirby.Draw(spriteBatch);
+
+            foreach (var hb in hitBoxes)
+            {
+                spriteBatch.Draw(Content.Load<Texture2D>("hitbox"), new Rectangle(hb.X, hb.Y, hb.Width, hb.Height), Color.White);
+            }
+            //spriteBatch.Draw(Content.Load<Texture2D>("hitbox"), new Rectangle((int)Kirby.Position.X, (int)Kirby.Position.Y, 32, 32), Color.White);
 
             spriteBatch.End();
 
