@@ -3,8 +3,6 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
-using System.Drawing.Drawing2D;
-using System.Runtime.InteropServices;
 
 namespace FightToughEnemyInYourRoomOfChoiceSimulator
 {
@@ -25,6 +23,14 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         List<Frame> kirbyDoubleJumpingFrames;
         List<Frame> kirbyCrouchingFrames;
         List<Frame> kirbyCrouchMovingFrames;
+
+        Rectangle floor;
+        Rectangle roof;
+        Rectangle leftWall;
+        Rectangle rightWall;
+
+        Rectangle platform;
+        string platformDirection;
 
         public Game1()
         {
@@ -86,23 +92,92 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
           
             Kirby = new Character(new Vector2((GraphicsDevice.Viewport.Width - 32)/2, (GraphicsDevice.Viewport.Height - 32)/2), Content.Load<Texture2D>("kirby"), new List<List<Frame>>() { kirbyJumpingFrames, kirbyDoubleJumpingFrames, kirbyCrouchingFrames, kirbyCrouchMovingFrames, kirbyIdleFrames, kirbyRunningFrames, kirbyJumpingFrames }, 4f, 0.2f);
 
-            hitBoxes.Add(new Rectangle(200, GraphicsDevice.Viewport.Height - 200, 300, 20)); //platform
+            floor = new Rectangle(0, GraphicsDevice.Viewport.Height - 40, GraphicsDevice.Viewport.Width + 40, 20);
+            roof = new Rectangle(0, 20, GraphicsDevice.Viewport.Width + 40, 20);
+            leftWall = new Rectangle(20, -20, 20, GraphicsDevice.Viewport.Height + 40);
+            rightWall = new Rectangle(GraphicsDevice.Viewport.Width - 40, -20, 20, GraphicsDevice.Viewport.Height + 40);
 
-            hitBoxes.Add(new Rectangle(0, GraphicsDevice.Viewport.Height-40, GraphicsDevice.Viewport.Width + 40, 20)); //floor
-            hitBoxes.Add(new Rectangle(0, 20, GraphicsDevice.Viewport.Width + 40, 20)); //roof
-            hitBoxes.Add(new Rectangle(20, -20, 20, GraphicsDevice.Viewport.Height + 40)); //left
-            hitBoxes.Add(new Rectangle(GraphicsDevice.Viewport.Width-40, -20, 20, GraphicsDevice.Viewport.Height + 40)); //right
+            hitBoxes.Add(floor);
+            hitBoxes.Add(roof);
+            hitBoxes.Add(leftWall);
+            hitBoxes.Add(rightWall);
 
-
-           
+            platform = new Rectangle(GraphicsDevice.Viewport.Width / 2 - 150, GraphicsDevice.Viewport.Height - GraphicsDevice.Viewport.Height / 2 + 30, 300, 20);
+            platformDirection = "left";
+            hitBoxes.Add(platform);
         }
 
+        int timer = 0;
         protected override void Update(GameTime gameTime)
         {
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
-            Kirby.Update(/*GraphicsDevice,*/ gameTime, hitBoxes);
+            Kirby.Update(gameTime, hitBoxes);
+
+            timer++;
+            if (timer == 100)
+            {
+                timer = 0;
+                for (int i = 0; i < hitBoxes.Count; i++)
+                {
+
+                    if (hitBoxes[i] == roof)
+                    {
+                        hitBoxes.Remove(roof);
+                        roof.Y += 1;
+                        hitBoxes.Add(roof);
+                    }
+                    if (hitBoxes[i] == floor)
+                    {
+                        hitBoxes.Remove(floor);
+                        floor.Y -= 1;
+                        hitBoxes.Add(floor);
+                    }
+                    if (hitBoxes[i] == leftWall)
+                    {
+                        hitBoxes.Remove(leftWall);
+                        leftWall.X += 1;
+                        hitBoxes.Add(leftWall);
+                    }
+                    if (hitBoxes[i] == rightWall)
+                    {
+                        hitBoxes.Remove(rightWall);
+                        rightWall.X -= 1;
+                        hitBoxes.Add(rightWall);
+
+
+
+                        //for (int j = 0; j < hitBoxes.Count; j++)
+                        //{
+                        //    if (platform.Intersects(hitBoxes[j]) && hitBoxes[j] != platform)
+                        //    {
+                        //        if (platformDirection == "left")
+                        //        {
+                        //            platformDirection = "right";
+                        //        }
+                        //        else if (platformDirection == "right")
+                        //        {
+                        //            platformDirection = "left";
+                        //        }
+                        //    }
+
+                        //    if (hitBoxes[i] == platform && platformDirection == "left")
+                        //    {
+                        //        hitBoxes.Remove(platform);
+                        //        platform.X -= 1;
+                        //        hitBoxes.Add(platform);
+                        //    }
+                        //    else if (hitBoxes[i] == platform && platformDirection == "right")
+                        //    {
+                        //        hitBoxes.Remove(platform);
+                        //        platform.X += 1;
+                        //        hitBoxes.Add(platform);
+                        //    }
+                        //}
+                    }
+                }
+            }
           
             base.Update(gameTime);
         }

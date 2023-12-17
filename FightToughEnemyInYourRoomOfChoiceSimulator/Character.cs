@@ -170,10 +170,8 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             {
                 if (characterHB.Intersects(hB))
                 {
-                    if (characterHB.Bottom >= hB.Top && characterHB.Top < hB.Top && characterHB.Right < hB.Right && characterHB.Left > hB.Left)
+                    if (characterHB.Bottom >= hB.Top && characterHB.Y < hB.Top - characterHB.Height + charYSpeed + 10 && characterHB.Right < hB.Right && characterHB.Left > hB.Left)
                     {
-                        //Position.Y = hB.Top - characterHB.Height;
-
                         Position.Y -= charYSpeed;
                         charYSpeed = 0;
                         jumpCount = 0;
@@ -184,14 +182,10 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                     }
                     else if (characterHB.Left <= hB.Right && Direction == SpriteEffects.FlipHorizontally && characterHB.Right > hB.Right && characterHB.Left < hB.Left)
                     {
-                        //Position.X = hB.Right;
-
                         Position.X += charXSpeed;
                     }
                     else if (characterHB.Right >= hB.Left && Direction == SpriteEffects.None && characterHB.Right > hB.Right && characterHB.Left < hB.Left)
                     {
-                        //Position.X = hB.Left - characterHB.Width;
-
                         Position.X -= charXSpeed;
                     }
                 }
