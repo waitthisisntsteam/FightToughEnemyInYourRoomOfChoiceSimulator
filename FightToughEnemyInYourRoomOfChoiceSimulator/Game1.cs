@@ -3,6 +3,9 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
+using System.IO.Ports;
+using System.Linq;
+using System.Management;
 
 namespace FightToughEnemyInYourRoomOfChoiceSimulator
 {
@@ -12,6 +15,8 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         private SpriteBatch spriteBatch;
 
         private List<Rectangle> hitBoxes = new List<Rectangle>();
+
+        private SerialPort Serial;
 
         Character Kirby;
         List<Frame> kirbyIdleFrames;
@@ -37,7 +42,23 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
         protected override void Initialize()
         {
-            // TODO: Add your initialization logic here
+            using (var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_PnPEntity WHERE Caption like '%(COM%'"))
+            {
+                var portnames = SerialPort.GetPortNames();
+                var ports = searcher.Get().Cast<ManagementBaseObject>().ToList().Select(p => p["Caption"].ToString());
+
+                var portList = portnames.Select(n => n + " - " + ports.FirstOrDefault(s => s.Contains(n))).ToList();
+
+                foreach (string s in portList)
+                {
+                    if (s.Contains("Serial"))
+                    {
+                        Serial = new(, )
+                        Serial.Open();
+                        break;
+                    }
+                }
+            }
 
             base.Initialize();
         }
@@ -103,8 +124,25 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
-            Kirby.Update(gameTime, hitBoxes);
+            HashSet<Keys> keysPressed = new HashSet<Keys>(Keyboard.GetState().GetPressedKeys());
 
+            if (Serial.BytesToRead > 0)
+            {
+                byte[] bytes = new byte[Serial.BytesToRead];
+                Serial.Read(bytes, 0, bytes.Length);
+                int joyStick = bytes[^1];
+
+                bool r = (joyStick & 1) == 1;
+                bool l = (joyStick & 2) == 2;
+                bool d = (joyStick & 4) == 4;
+                bool u = (joyStick & 8) == 8;
+
+                if (r) { keysPressed.Add(Keys.Right); }
+            }
+
+            Kirby.Update(gameTime, hitBoxes, keysPressed);
+
+            //hitboxes moving
             timer++;
             if (timer == 25)
             {

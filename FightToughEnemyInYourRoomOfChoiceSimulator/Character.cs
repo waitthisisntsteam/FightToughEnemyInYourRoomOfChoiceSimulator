@@ -58,8 +58,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
 
 
-
-        public void Update(GameTime gameTime, List<Rectangle> hitBoxes)
+        public void Update(GameTime gameTime, List<Rectangle> hitBoxes, HashSet<Keys> keysDown)
         {
             currentFrame++;
             if (characterState == CharacterState.Crouching)
