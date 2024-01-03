@@ -34,6 +34,8 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         private bool idle;
         private float gravity;
 
+        private Rectangle characterHB;
+
         public Character(Vector2 Position, Texture2D Image, List<List<Frame>> Frames, float charXSpeed, float charYSpeed)
 
             : base(Position, Color.White, Image, SpriteEffects.None)
@@ -165,7 +167,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
 
 
-            Rectangle characterHB = new Rectangle((int)Position.X, (int)Position.Y, 32, 32);
+            characterHB = GetHitbox();
             foreach (Rectangle hB in hitBoxes)
             {
                 if (characterHB.Intersects(hB))
@@ -190,6 +192,13 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                     }
                 }
             }
+        }
+
+        public Rectangle GetHitbox()
+        {
+            characterHB = new Rectangle((int)Position.X, (int)Position.Y, 32, 32);
+
+            return characterHB;
         }
     }
 }

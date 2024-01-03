@@ -10,9 +10,6 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
     {
         private GraphicsDeviceManager gfx;
         private SpriteBatch spriteBatch;
-        private Texture2D SpriteSheet;
-
-        private Texture2D HitBoxSheet;
 
         private List<Rectangle> hitBoxes = new List<Rectangle>();
 
@@ -30,7 +27,6 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         Rectangle rightWall;
 
         Rectangle platform;
-        string platformDirection;
 
         public Game1()
         {
@@ -47,13 +43,8 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         }
 
         protected override void LoadContent()
-        {
-            
+        {  
             spriteBatch = new SpriteBatch(GraphicsDevice);
-
-            SpriteSheet = Content.Load<Texture2D>("kirby");
-
-            HitBoxSheet = Content.Load<Texture2D>("hitbox");
 
             kirbyIdleFrames = new List<Frame>();
             kirbyRunningFrames = new List<Frame>();
@@ -103,7 +94,6 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             hitBoxes.Add(rightWall);
 
             platform = new Rectangle(GraphicsDevice.Viewport.Width / 2 - 150, GraphicsDevice.Viewport.Height - GraphicsDevice.Viewport.Height / 2 + 30, 300, 20);
-            platformDirection = "left";
             hitBoxes.Add(platform);
         }
 
@@ -116,7 +106,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             Kirby.Update(gameTime, hitBoxes);
 
             timer++;
-            if (timer == 100)
+            if (timer == 25)
             {
                 timer = 0;
                 for (int i = 0; i < hitBoxes.Count; i++)
@@ -124,57 +114,43 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
                     if (hitBoxes[i] == roof)
                     {
-                        hitBoxes.Remove(roof);
-                        roof.Y += 1;
-                        hitBoxes.Add(roof);
+                        hitBoxes[i] = new Rectangle(hitBoxes[i].X, hitBoxes[i].Y+1, hitBoxes[i].Width, hitBoxes[i].Height);
+                        roof = hitBoxes[i];
+
+                        if (Kirby.GetHitbox().Intersects(hitBoxes[i]))
+                        {
+                            Kirby.Position.Y++;
+                        }
                     }
                     if (hitBoxes[i] == floor)
                     {
-                        hitBoxes.Remove(floor);
-                        floor.Y -= 1;
-                        hitBoxes.Add(floor);
+                        hitBoxes[i] = new Rectangle(hitBoxes[i].X, hitBoxes[i].Y-1, hitBoxes[i].Width, hitBoxes[i].Height);
+                        floor = hitBoxes[i];
+
+                        if (Kirby.GetHitbox().Intersects(hitBoxes[i]))
+                        {
+                            Kirby.Position.Y--;
+                        }
                     }
                     if (hitBoxes[i] == leftWall)
                     {
-                        hitBoxes.Remove(leftWall);
-                        leftWall.X += 1;
-                        hitBoxes.Add(leftWall);
+                        hitBoxes[i] = new Rectangle(hitBoxes[i].X+1, hitBoxes[i].Y, hitBoxes[i].Width, hitBoxes[i].Height);
+                        leftWall = hitBoxes[i];
+
+                        if (Kirby.GetHitbox().Intersects(hitBoxes[i]))
+                        {
+                            Kirby.Position.X++;
+                        }
                     }
                     if (hitBoxes[i] == rightWall)
                     {
-                        hitBoxes.Remove(rightWall);
-                        rightWall.X -= 1;
-                        hitBoxes.Add(rightWall);
+                        hitBoxes[i] = new Rectangle(hitBoxes[i].X-1, hitBoxes[i].Y, hitBoxes[i].Width, hitBoxes[i].Height);
+                        rightWall = hitBoxes[i];
 
-
-
-                        //for (int j = 0; j < hitBoxes.Count; j++)
-                        //{
-                        //    if (platform.Intersects(hitBoxes[j]) && hitBoxes[j] != platform)
-                        //    {
-                        //        if (platformDirection == "left")
-                        //        {
-                        //            platformDirection = "right";
-                        //        }
-                        //        else if (platformDirection == "right")
-                        //        {
-                        //            platformDirection = "left";
-                        //        }
-                        //    }
-
-                        //    if (hitBoxes[i] == platform && platformDirection == "left")
-                        //    {
-                        //        hitBoxes.Remove(platform);
-                        //        platform.X -= 1;
-                        //        hitBoxes.Add(platform);
-                        //    }
-                        //    else if (hitBoxes[i] == platform && platformDirection == "right")
-                        //    {
-                        //        hitBoxes.Remove(platform);
-                        //        platform.X += 1;
-                        //        hitBoxes.Add(platform);
-                        //    }
-                        //}
+                        if (Kirby.GetHitbox().Intersects(hitBoxes[i]))
+                        {
+                            Kirby.Position.X--;
+                        }
                     }
                 }
             }
@@ -192,7 +168,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
             foreach (var hb in hitBoxes)
             {
-                spriteBatch.Draw(Content.Load<Texture2D>("hitbox"), new Rectangle(hb.X, hb.Y, hb.Width, hb.Height), Color.White);
+                spriteBatch.Draw(Content.Load<Texture2D>("platform"), new Rectangle(hb.X, hb.Y, hb.Width, hb.Height), Color.White);
             }
             //spriteBatch.Draw(Content.Load<Texture2D>("hitbox"), new Rectangle((int)Kirby.Position.X, (int)Kirby.Position.Y, 32, 32), Color.White);
 
