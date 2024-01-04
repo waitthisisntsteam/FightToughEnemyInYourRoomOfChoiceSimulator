@@ -71,12 +71,12 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             }
             idle = true;
 
-            if (Keyboard.GetState().IsKeyDown(Keys.Up))
+            if (keysDown.Contains(Keys.Up))
             {
                 idle = false;
                 upPressed = true;
             }
-            if (Keyboard.GetState().IsKeyUp(Keys.Up) && upPressed && jumpCount < 2)
+            if (!keysDown.Contains(Keys.Up) && upPressed && jumpCount < 2)
             {
                 jumpCount++;
                 if (jumpCount == 1)
@@ -92,12 +92,12 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 currentFrame = 0;
             }
             Position.Y += charYSpeed;
-            if (Keyboard.GetState().IsKeyDown(Keys.Down))
+            if (keysDown.Contains(Keys.Down))
             {
                 characterState = CharacterState.Crouching;
                 idle = false;
             }
-            if (Keyboard.GetState().IsKeyUp(Keys.Down) && jumpCount > 0)
+            if (!keysDown.Contains(Keys.Down) && jumpCount > 0)
             {
                 if (jumpCount == 1)
                 {
@@ -109,9 +109,9 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 }
                 idle = false;
             }
-            if (Keyboard.GetState().IsKeyDown(Keys.Left))
+            if (keysDown.Contains(Keys.Left))
             {
-                if (Keyboard.GetState().IsKeyDown(Keys.Down))
+                if (keysDown.Contains(Keys.Down))
                 {
                     Position.X -= charXSpeed / 2;
                     if (jumpCount == 0)
@@ -124,7 +124,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                     Position.X -= charXSpeed;
                 }
 
-                if (jumpCount == 0 && Keyboard.GetState().IsKeyUp(Keys.Down))
+                if (jumpCount == 0 && !keysDown.Contains(Keys.Down))
                 {
                     characterState = CharacterState.Running;
                 }
@@ -132,9 +132,9 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 Direction = SpriteEffects.FlipHorizontally;
                 idle = false;
             }
-            if (Keyboard.GetState().IsKeyDown(Keys.Right))
+            if (keysDown.Contains(Keys.Right))
             {
-                if (Keyboard.GetState().IsKeyDown(Keys.Down))
+                if (keysDown.Contains(Keys.Down))
                 {
                     Position.X += charXSpeed / 2;
                     if (jumpCount == 0)
@@ -147,7 +147,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                     Position.X += charXSpeed;
                 }
 
-                if (jumpCount == 0 && Keyboard.GetState().IsKeyUp(Keys.Down))
+                if (jumpCount == 0 && !keysDown.Contains(Keys.Down))
                 {
                     characterState = CharacterState.Running;
                 }

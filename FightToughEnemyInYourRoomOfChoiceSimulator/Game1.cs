@@ -3,6 +3,8 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.IO.Ports;
 using System.Linq;
 using System.Management;
@@ -16,7 +18,10 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
         private List<Rectangle> hitBoxes = new List<Rectangle>();
 
-        private SerialPort Serial;
+        private SerialPort Serial;       
+        private ManagementObjectSearcher searcher;
+        private int portsTaken;
+        private bool joystickInUse;
 
         Character Kirby;
         List<Frame> kirbyIdleFrames;
@@ -30,8 +35,52 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         Rectangle roof;
         Rectangle leftWall;
         Rectangle rightWall;
-
         Rectangle platform;
+
+        int timer;
+
+        private void JoystickInput (HashSet<Keys> keys)
+        {
+            if (Serial != null && Serial.BytesToRead > 0)
+            {
+                byte[] bytes = new byte[Serial.BytesToRead];
+                Serial.Read(bytes, 0, bytes.Length);
+                int joyStick = bytes[^1];
+
+                bool r = (joyStick & 1) == 1;
+                bool l = (joyStick & 2) == 2;
+                bool d = (joyStick & 4) == 4;
+                bool u = (joyStick & 8) == 8;
+
+                if (r) { keys.Add(Keys.Right); }
+                if (l) { keys.Add(Keys.Left); }
+                if (d) { keys.Add(Keys.Down); }
+                if (u) { keys.Add(Keys.Up); }
+            }
+        }
+
+        private bool setJoystick()
+        {
+            var portnames = SerialPort.GetPortNames();            
+            var ports = searcher.Get().Cast<ManagementBaseObject>().Select(p => p["Caption"].ToString()).ToList();
+
+            var portList = portnames.Select(n => n + " - " + ports.FirstOrDefault(s => s.Contains(n))).ToList();
+            portsTaken = portList.Count;
+
+            foreach (string s in portList)
+            {
+                if (s.Contains("CH340"))
+                {
+                    string comPort = s.Substring(s.IndexOf('(') + 1, s.IndexOf(')') - s.IndexOf('(') - 1);
+                    Serial = new(comPort, 150000);
+                    Serial.Open();
+
+                    Console.WriteLine("Controller connected.");
+                    return true;
+                }
+            }
+            return false;
+        }
 
         public Game1()
         {
@@ -42,23 +91,47 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
         protected override void Initialize()
         {
-            using (var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_PnPEntity WHERE Caption like '%(COM%'"))
+            timer = 0;
+
+            Console.WriteLine("Searching for Controller...");
+
+            searcher = new ManagementObjectSearcher("SELECT Caption FROM Win32_PnPEntity WHERE Caption like '%(COM%'");
+
+            Stopwatch sw = new();
+            sw.Start();
+
+            if (setJoystick())
             {
-                var portnames = SerialPort.GetPortNames();
-                var ports = searcher.Get().Cast<ManagementBaseObject>().ToList().Select(p => p["Caption"].ToString());
+                sw.Stop();
 
-                var portList = portnames.Select(n => n + " - " + ports.FirstOrDefault(s => s.Contains(n))).ToList();
-
-                foreach (string s in portList)
+                //optimizes speed for when disconnected and searching for reconnection
+                searcher.Options = new System.Management.EnumerationOptions()
                 {
-                    if (s.Contains("Serial"))
-                    {
-                        Serial = new(, )
-                        Serial.Open();
-                        break;
-                    }
-                }
+                    ReturnImmediately = true,
+                    EnumerateDeep = false,
+                    BlockSize = 1024,
+                    DirectRead = true,
+                    EnsureLocatable = false,
+                    Rewindable = false,
+                    UseAmendedQualifiers = false,
+                };   
+
+                Console.WriteLine("Controller found. (" + sw.Elapsed + " s)");
+                Console.WriteLine("If unplugged, can be plugged back in but cannot use keyboard when unplugged (very slow).");
+
+                joystickInUse = true;
+
             }
+            else
+            {
+                sw.Stop();
+
+                Console.WriteLine("Controller not found. (" + sw.Elapsed + "s)");
+                Console.WriteLine("Cannot be used if plugged in later. (will be fixed later hopefully !)");
+
+                joystickInUse = false;
+            }
+            
 
             base.Initialize();
         }
@@ -118,7 +191,6 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             hitBoxes.Add(platform);
         }
 
-        int timer = 0;
         protected override void Update(GameTime gameTime)
         {
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
@@ -126,20 +198,31 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
             HashSet<Keys> keysPressed = new HashSet<Keys>(Keyboard.GetState().GetPressedKeys());
 
-            if (Serial.BytesToRead > 0)
+            //joystick added on movement if used
+            if (joystickInUse)
             {
-                byte[] bytes = new byte[Serial.BytesToRead];
-                Serial.Read(bytes, 0, bytes.Length);
-                int joyStick = bytes[^1];
+                try
+                {
+                    if (Serial != null && Serial.BytesToRead > 0)
+                    {
+                        JoystickInput(keysPressed);
+                    }
+                }
+                catch (InvalidOperationException ex)
+                {
+                    Serial.Dispose();
+                    Serial.Close();
+                    Serial = null;
+                    Console.WriteLine("Controller disconnected.");
+                }
 
-                bool r = (joyStick & 1) == 1;
-                bool l = (joyStick & 2) == 2;
-                bool d = (joyStick & 4) == 4;
-                bool u = (joyStick & 8) == 8;
-
-                if (r) { keysPressed.Add(Keys.Right); }
+                if (Serial == null && searcher.Get().Count != portsTaken)
+                {
+                    setJoystick();
+                }
             }
 
+            //base movement
             Kirby.Update(gameTime, hitBoxes, keysPressed);
 
             //hitboxes moving
@@ -202,8 +285,10 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
             spriteBatch.Begin();
 
+            //draw characters
             Kirby.Draw(spriteBatch);
 
+            //draw hiboxes
             foreach (var hb in hitBoxes)
             {
                 spriteBatch.Draw(Content.Load<Texture2D>("platform"), new Rectangle(hb.X, hb.Y, hb.Width, hb.Height), Color.White);
