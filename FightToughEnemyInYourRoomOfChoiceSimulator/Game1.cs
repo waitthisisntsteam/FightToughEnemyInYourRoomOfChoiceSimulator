@@ -227,7 +227,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
             //hitboxes moving
             timer++;
-            if (timer == 25)
+            if (timer == 50)
             {
                 timer = 0;
                 for (int i = 0; i < hitBoxes.Count; i++)
@@ -281,7 +281,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
         protected override void Draw(GameTime gameTime)
         {
-            GraphicsDevice.Clear(Color.CornflowerBlue);
+            GraphicsDevice.Clear(Color.White);
 
             spriteBatch.Begin();
 
