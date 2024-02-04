@@ -9,6 +9,8 @@ using System.IO.Ports;
 using System.Linq;
 using System.Management;
 
+using Weighted_Directed_Graph;
+
 namespace FightToughEnemyInYourRoomOfChoiceSimulator
 {
     public class Game1 : Game
@@ -31,6 +33,9 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         List<Frame> kirbyCrouchingFrames;
         List<Frame> kirbyCrouchMovingFrames;
 
+        Graph<Point> graph;
+        Heap<Vertex<Point>> priorityQueue;
+
         Rectangle floor;
         Rectangle roof;
         Rectangle leftWall;
@@ -38,6 +43,53 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         Rectangle platform;
 
         int timer;
+
+
+        static int TwoDToOneD(int x, int y, int width) // width = columns
+           => x + y * width;
+        public void GenerateGraph(int rows, int columns)
+        {
+            Point[] offsets = new Point[] { };
+            offsets = new Point[] { new Point(1, 0), new Point(-1, 0), new Point(0, -1), new Point(0, 1), new Point(1, 1), new Point(1, -1), new Point(-1, 1), new Point(-1, -1) };
+
+            Dictionary<int, Vertex<Point>> graphValues = new Dictionary<int, Vertex<Point>>();
+            for (int y = 0; y < rows; y++)
+            {
+                for (int x = 0; x < columns; x++)
+                {
+                    int num = TwoDToOneD(x, y, columns) + 1;
+                    if (graphValues.ContainsKey(num) == false)
+                    {
+                        var vertex = new Vertex<Point>(new Point(x, y));
+                        graph.AddVertex(vertex);
+                        graphValues.Add(num, vertex);
+                    }
+
+                    for (int i = 0; i < offsets.Length; i++)
+                    {
+                        int newX = x + offsets[i].X;
+                        int newY = y + offsets[i].Y;
+                        Point newPoint = new Point(newX, newY);
+                        if (newPoint.X < 0 || newPoint.X >= columns || newPoint.Y < 0 || newPoint.Y >= rows)
+                        {
+                            continue;
+                        }
+
+                        int neighborValue = TwoDToOneD(newX, newY, columns) + 1;
+                        if (!graphValues.ContainsKey(neighborValue))
+                        {
+                            var vertex = new Vertex<Point>(new Point(newX, newY));
+                            graph.AddVertex(vertex);
+                            graphValues.Add(neighborValue, vertex);
+                        }
+
+                        float distance = (float)Math.Sqrt(Math.Pow(newX - x, 2) + Math.Pow(newY - y, 2));
+                        graph.AddEdge(graphValues[num], graphValues[neighborValue], distance);
+                    }
+                }
+            }
+        }
+
 
         private void JoystickInput (HashSet<Keys> keys)
         {
@@ -158,9 +210,9 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             kirbyRunningFrames.Add(new Frame(Vector2.Zero, new Rectangle(68, 19, 16, 16)));
             kirbyRunningFrames.Add(new Frame(Vector2.Zero, new Rectangle(89, 19, 21, 16)));
 
-            kirbyDoubleJumpingFrames.Add(new Frame(Vector2.Zero, new Rectangle(141, 564, 21, 19)));
             kirbyJumpingFrames.Add(new Frame(Vector2.Zero, new Rectangle(113, 563, 22, 19)));
 
+            kirbyDoubleJumpingFrames.Add(new Frame(Vector2.Zero, new Rectangle(141, 564, 21, 19)));
             kirbyDoubleJumpingFrames.Add(new Frame(Vector2.Zero, new Rectangle(141, 564, 21, 19)));
             kirbyDoubleJumpingFrames.Add(new Frame(Vector2.Zero, new Rectangle(113, 563, 22, 19)));
             kirbyDoubleJumpingFrames.Add(new Frame(Vector2.Zero, new Rectangle(113, 563, 22, 19)));
@@ -173,9 +225,13 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             kirbyCrouchMovingFrames.Add(new Frame(Vector2.Zero, new Rectangle(127, 228, 17, 16)));
             kirbyCrouchMovingFrames.Add(new Frame(Vector2.Zero, new Rectangle(127, 228, 17, 16)));
             kirbyCrouchMovingFrames.Add(new Frame(Vector2.Zero, new Rectangle(74, 228, 16, 16)));
-
-          
+            
             Kirby = new Character(new Vector2((GraphicsDevice.Viewport.Width - 32)/2, (GraphicsDevice.Viewport.Height - 32)/2), Content.Load<Texture2D>("kirby"), new List<List<Frame>>() { kirbyJumpingFrames, kirbyDoubleJumpingFrames, kirbyCrouchingFrames, kirbyCrouchMovingFrames, kirbyIdleFrames, kirbyRunningFrames, kirbyJumpingFrames }, 4f, 0.2f);
+
+            graph = new Graph<Point>();
+
+            GenerateGraph(GraphicsDevice.Viewport.Height - 32, GraphicsDevice.Viewport.Width - 32);
+            priorityQueue = null;
 
             floor = new Rectangle(0, GraphicsDevice.Viewport.Height - 40, GraphicsDevice.Viewport.Width + 40, 20);
             roof = new Rectangle(0, 20, GraphicsDevice.Viewport.Width + 40, 20);
@@ -221,6 +277,18 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                     setJoystick();
                 }
             }
+
+            priorityQueue = null;
+
+            Point kirbyPoint = new Point((int)Kirby.Position.X, (int)Kirby.Position.Y);
+            Vertex<Point> kirbyVertex = graph.Search(kirbyPoint);
+
+            Point metaKnightPoint = new Point(250, GraphicsDevice.Viewport.Height - 32);
+            Vertex<Point> metaKnightVertex = graph.Search(metaKnightPoint);
+
+            List<Vertex<Point>> path = graph.AStar(kirbyVertex, metaKnightVertex, Heuristics.Euclidean, out priorityQueue);
+
+            ;
 
             //base movement
             Kirby.Update(gameTime, hitBoxes, keysPressed);
@@ -275,15 +343,21 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                     }
                 }
             }
-          
+
+            //var startingPoint = graph.Search(new Point((start.position.X + start.size / 2) / start.size, (start.position.Y + start.size / 2) / start.size));
+            //var endingPoint = graph.Search(new Point((end.position.X + end.size / 2) / end.size, (end.position.Y + end.size / 2) / end.size));
+
             base.Update(gameTime);
         }
 
         protected override void Draw(GameTime gameTime)
         {
-            GraphicsDevice.Clear(Color.White);
+            GraphicsDevice.Clear(Color.CornflowerBlue);
 
             spriteBatch.Begin();
+
+            //draw background
+            spriteBatch.Draw(Content.Load<Texture2D>("background"), new Rectangle(0, 0, GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height), Color.White);
 
             //draw characters
             Kirby.Draw(spriteBatch);
