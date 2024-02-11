@@ -20,12 +20,16 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
         private List<Rectangle> hitBoxes = new List<Rectangle>();
 
+        //joystick added on movement if used (Arduino Joystick + Button)
         private SerialPort Serial;       
         private ManagementObjectSearcher searcher;
         private int portsTaken;
         private bool joystickInUse;
 
+        //kirby setup
         Character Kirby;
+        Point kirbyPoint;
+        Vertex<Point> kirbyVertex;
         List<Frame> kirbyIdleFrames;
         List<Frame> kirbyRunningFrames;
         List<Frame> kirbyJumpingFrames;
@@ -33,20 +37,27 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         List<Frame> kirbyCrouchingFrames;
         List<Frame> kirbyCrouchMovingFrames;
 
+        //metaknight(pretend) setup
+        Point metaKnightPoint;
+        Vertex<Point> metaKnightVertex;
+
+        //graph setup
         Graph<Point> graph;
         Heap<Vertex<Point>> priorityQueue;
+        List<Vertex<Point>> path;
 
+        //hitboxes setup
         Rectangle floor;
         Rectangle roof;
         Rectangle leftWall;
         Rectangle rightWall;
         Rectangle platform;
 
+        //timer lol
         int timer;
 
-
-        static int TwoDToOneD(int x, int y, int width) // width = columns
-           => x + y * width;
+        //pathfinding grid setup
+        static int TwoDToOneD(int x, int y, int width) => x + y * width;    
         public void GenerateGraph(int rows, int columns)
         {
             Point[] offsets = new Point[] { };
@@ -90,7 +101,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             }
         }
 
-
+        //joystick added on movement if used
         private void JoystickInput (HashSet<Keys> keys)
         {
             if (Serial != null && Serial.BytesToRead > 0)
@@ -110,7 +121,6 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 if (u) { keys.Add(Keys.Up); }
             }
         }
-
         private bool setJoystick()
         {
             var portnames = SerialPort.GetPortNames();            
@@ -147,6 +157,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
             Console.WriteLine("Searching for Controller...");
 
+            //joystick added on movement if used
             searcher = new ManagementObjectSearcher("SELECT Caption FROM Win32_PnPEntity WHERE Caption like '%(COM%'");
 
             Stopwatch sw = new();
@@ -183,7 +194,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
                 joystickInUse = false;
             }
-            
+
 
             base.Initialize();
         }
@@ -225,13 +236,19 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             kirbyCrouchMovingFrames.Add(new Frame(Vector2.Zero, new Rectangle(127, 228, 17, 16)));
             kirbyCrouchMovingFrames.Add(new Frame(Vector2.Zero, new Rectangle(127, 228, 17, 16)));
             kirbyCrouchMovingFrames.Add(new Frame(Vector2.Zero, new Rectangle(74, 228, 16, 16)));
-            
+
+            kirbyPoint = default;
+            kirbyVertex = null;
+
             Kirby = new Character(new Vector2((GraphicsDevice.Viewport.Width - 32)/2, (GraphicsDevice.Viewport.Height - 32)/2), Content.Load<Texture2D>("kirby"), new List<List<Frame>>() { kirbyJumpingFrames, kirbyDoubleJumpingFrames, kirbyCrouchingFrames, kirbyCrouchMovingFrames, kirbyIdleFrames, kirbyRunningFrames, kirbyJumpingFrames }, 4f, 0.2f);
+          
+            metaKnightPoint = default;
+            metaKnightVertex = null;
 
             graph = new Graph<Point>();
-
             GenerateGraph(GraphicsDevice.Viewport.Height - 32, GraphicsDevice.Viewport.Width - 32);
             priorityQueue = null;
+            path = null;
 
             floor = new Rectangle(0, GraphicsDevice.Viewport.Height - 40, GraphicsDevice.Viewport.Width + 40, 20);
             roof = new Rectangle(0, 20, GraphicsDevice.Viewport.Width + 40, 20);
@@ -245,6 +262,24 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
             platform = new Rectangle(GraphicsDevice.Viewport.Width / 2 - 150, GraphicsDevice.Viewport.Height - GraphicsDevice.Viewport.Height / 2 + 30, 300, 20);
             hitBoxes.Add(platform);
+
+            foreach (var hb in hitBoxes)
+            {
+                if (hb == platform)
+                {
+                    for (int x = hb.X; x < hb.X + hb.Width; x++)
+                    {
+                        graph.RemoveVertex(new Vertex<Point>(new Point(x, hb.Y)));
+                        graph.RemoveVertex(new Vertex<Point>(new Point(x, hb.Y + hb.Width)));
+                    }
+                    for (int y = hb.Y; y < hb.Y + hb.Height; y++)
+                    {
+                        graph.RemoveVertex(new Vertex<Point>(new Point(hb.X, y)));
+                        graph.RemoveVertex(new Vertex<Point>(new Point(hb.X + hb.Width, y)));
+                    }
+                }
+            }
+
         }
 
         protected override void Update(GameTime gameTime)
@@ -255,7 +290,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             HashSet<Keys> keysPressed = new HashSet<Keys>(Keyboard.GetState().GetPressedKeys());
 
             //joystick added on movement if used
-            if (joystickInUse)
+            /*if (joystickInUse)
             {
                 try
                 {
@@ -276,28 +311,72 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 {
                     setJoystick();
                 }
+            }*/
+
+            //kirby movement
+            if (path != null && timer < path.Count)
+            {
+                ;
+                if (path[timer].Value.X >= (int)Kirby.Position.X)
+                {
+                    keysPressed.Add(Keys.Right);
+                }
+                if (path[timer].Value.X <= (int)Kirby.Position.X)
+                {
+                    keysPressed.Add(Keys.Left);
+                }
+                if (path[timer].Value.Y-10 <= (int)Kirby.Position.Y)
+                {
+                    keysPressed.Add(Keys.Up);
+                }
+                if (path[timer].Value.Y-10 >= (int)Kirby.Position.Y)
+                {
+                    keysPressed.Add(Keys.Down);
+                }
             }
-
-            priorityQueue = null;
-
-            Point kirbyPoint = new Point((int)Kirby.Position.X, (int)Kirby.Position.Y);
-            Vertex<Point> kirbyVertex = graph.Search(kirbyPoint);
-
-            Point metaKnightPoint = new Point(250, GraphicsDevice.Viewport.Height - 32);
-            Vertex<Point> metaKnightVertex = graph.Search(metaKnightPoint);
-
-            List<Vertex<Point>> path = graph.AStar(kirbyVertex, metaKnightVertex, Heuristics.Euclidean, out priorityQueue);
-
-            ;
-
-            //base movement
             Kirby.Update(gameTime, hitBoxes, keysPressed);
 
-            //hitboxes moving
+            //metaknight(pretend) movement
+            if (keysPressed.Contains(Keys.D))
+            {
+                metaKnightPoint.X += 4;
+            }
+            if (keysPressed.Contains(Keys.A))
+            {
+                metaKnightPoint.X -= 4;
+            }
+            if (keysPressed.Contains(Keys.W))
+            {
+                metaKnightPoint.Y -= 4;
+            }
+            if (keysPressed.Contains(Keys.S))
+            {
+                metaKnightPoint.Y += 4;
+            }
+
+            //tick update
             timer++;
-            if (timer == 50)
+            if (timer >= 50)
             {
                 timer = 0;
+
+                //pathfinding update
+                priorityQueue = null;
+
+                kirbyPoint = new Point((int)Kirby.Position.X, (int)Kirby.Position.Y);
+                kirbyVertex = graph.Search(kirbyPoint);
+
+                //metaKnightPoint = new Point();
+                metaKnightVertex = graph.Search(metaKnightPoint);
+
+                if (path != null)
+                {
+                    path.Clear();
+                }
+
+                path = graph.AStar(kirbyVertex, metaKnightVertex, Heuristics.Euclidean, out priorityQueue);
+
+                //platforms closing in
                 for (int i = 0; i < hitBoxes.Count; i++)
                 {
 
@@ -344,9 +423,6 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 }
             }
 
-            //var startingPoint = graph.Search(new Point((start.position.X + start.size / 2) / start.size, (start.position.Y + start.size / 2) / start.size));
-            //var endingPoint = graph.Search(new Point((end.position.X + end.size / 2) / end.size, (end.position.Y + end.size / 2) / end.size));
-
             base.Update(gameTime);
         }
 
@@ -367,7 +443,8 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             {
                 spriteBatch.Draw(Content.Load<Texture2D>("platform"), new Rectangle(hb.X, hb.Y, hb.Width, hb.Height), Color.White);
             }
-            //spriteBatch.Draw(Content.Load<Texture2D>("hitbox"), new Rectangle((int)Kirby.Position.X, (int)Kirby.Position.Y, 32, 32), Color.White);
+            spriteBatch.Draw(Content.Load<Texture2D>("hitbox"), new Rectangle((int)Kirby.Position.X, (int)Kirby.Position.Y, 32, 32), Color.White);
+            spriteBatch.Draw(Content.Load<Texture2D>("hitbox"), new Rectangle(metaKnightPoint.X, metaKnightPoint.Y, 5, 5), Color.White);
 
             spriteBatch.End();
 
