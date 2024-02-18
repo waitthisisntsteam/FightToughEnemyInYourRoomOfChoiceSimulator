@@ -242,7 +242,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
             Kirby = new Character(new Vector2((GraphicsDevice.Viewport.Width - 32)/2, (GraphicsDevice.Viewport.Height - 32)/2), Content.Load<Texture2D>("kirby"), new List<List<Frame>>() { kirbyJumpingFrames, kirbyDoubleJumpingFrames, kirbyCrouchingFrames, kirbyCrouchMovingFrames, kirbyIdleFrames, kirbyRunningFrames, kirbyJumpingFrames }, 4f, 0.2f);
           
-            metaKnightPoint = default;
+            metaKnightPoint = new Point ((GraphicsDevice.Viewport.Width - 32) / 2, (GraphicsDevice.Viewport.Height - 32) / 2 + 16);
             metaKnightVertex = null;
 
             graph = new Graph<Point>();
@@ -317,22 +317,24 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             if (path != null && timer < path.Count)
             {
                 ;
-                if (path[timer].Value.X >= (int)Kirby.Position.X)
+                /*if (path[timer].Value.X >= (int)(Kirby.Position.X + 32))
                 {
                     keysPressed.Add(Keys.Right);
-                }
-                if (path[timer].Value.X <= (int)Kirby.Position.X)
+                }*/
+                if (path[timer].Value.X <= (int)(Kirby.Position.X - 1))
                 {
                     keysPressed.Add(Keys.Left);
                 }
-                if (path[timer].Value.Y-10 <= (int)Kirby.Position.Y)
+                /*
+                if (path[timer].Value.Y <= (int)(Kirby.Position.Y - 1))
                 {
                     keysPressed.Add(Keys.Up);
                 }
-                if (path[timer].Value.Y-10 >= (int)Kirby.Position.Y)
+                if (path[timer].Value.Y >= (int)(Kirby.Position.Y + 32))
                 {
                     keysPressed.Add(Keys.Down);
                 }
+                */
             }
             Kirby.Update(gameTime, hitBoxes, keysPressed);
 
@@ -377,6 +379,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 path = graph.AStar(kirbyVertex, metaKnightVertex, Heuristics.Euclidean, out priorityQueue);
 
                 //platforms closing in
+                /*
                 for (int i = 0; i < hitBoxes.Count; i++)
                 {
 
@@ -420,7 +423,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                             Kirby.Position.X--;
                         }
                     }
-                }
+                }*/
             }
 
             base.Update(gameTime);
@@ -443,7 +446,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             {
                 spriteBatch.Draw(Content.Load<Texture2D>("platform"), new Rectangle(hb.X, hb.Y, hb.Width, hb.Height), Color.White);
             }
-            spriteBatch.Draw(Content.Load<Texture2D>("hitbox"), new Rectangle((int)Kirby.Position.X, (int)Kirby.Position.Y, 32, 32), Color.White);
+            //spriteBatch.Draw(Content.Load<Texture2D>("hitbox"), new Rectangle((int)Kirby.Position.X, (int)Kirby.Position.Y, 32, 32), Color.White);
             spriteBatch.Draw(Content.Load<Texture2D>("hitbox"), new Rectangle(metaKnightPoint.X, metaKnightPoint.Y, 5, 5), Color.White);
 
             spriteBatch.End();
