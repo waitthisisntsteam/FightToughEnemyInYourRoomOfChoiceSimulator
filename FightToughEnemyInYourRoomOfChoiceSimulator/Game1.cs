@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using MonoGame.Extended.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -40,11 +41,13 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         //metaknight(pretend) setup
         Point metaKnightPoint;
         Vertex<Point> metaKnightVertex;
+        Point metaKnightPointPrev;
 
         //graph setup
         Graph<Point> graph;
         Heap<Vertex<Point>> priorityQueue;
         List<Vertex<Point>> path;
+        int pathIndex;
 
         //hitboxes setup
         Rectangle floor;
@@ -64,9 +67,9 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             offsets = new Point[] { new Point(1, 0), new Point(-1, 0), new Point(0, -1), new Point(0, 1), new Point(1, 1), new Point(1, -1), new Point(-1, 1), new Point(-1, -1) };
 
             Dictionary<int, Vertex<Point>> graphValues = new Dictionary<int, Vertex<Point>>();
-            for (int y = 0; y < rows; y++)
+            for (int y = 0; y < rows * 1; y+=1)
             {
-                for (int x = 0; x < columns; x++)
+                for (int x = 0; x < columns * 1; x+=1)
                 {
                     int num = TwoDToOneD(x, y, columns) + 1;
                     if (graphValues.ContainsKey(num) == false)
@@ -78,10 +81,10 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
                     for (int i = 0; i < offsets.Length; i++)
                     {
-                        int newX = x + offsets[i].X;
-                        int newY = y + offsets[i].Y;
+                        int newX = x + offsets[i].X*1;
+                        int newY = y + offsets[i].Y*1;
                         Point newPoint = new Point(newX, newY);
-                        if (newPoint.X < 0 || newPoint.X >= columns || newPoint.Y < 0 || newPoint.Y >= rows)
+                        if (newPoint.X < 0 || newPoint.X >= columns * 1 || newPoint.Y < 0 || newPoint.Y >= rows * 1)
                         {
                             continue;
                         }
@@ -241,14 +244,23 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             kirbyVertex = null;
 
             Kirby = new Character(new Vector2((GraphicsDevice.Viewport.Width - 32)/2, (GraphicsDevice.Viewport.Height - 32)/2), Content.Load<Texture2D>("kirby"), new List<List<Frame>>() { kirbyJumpingFrames, kirbyDoubleJumpingFrames, kirbyCrouchingFrames, kirbyCrouchMovingFrames, kirbyIdleFrames, kirbyRunningFrames, kirbyJumpingFrames }, 4f, 0.2f);
-          
-            metaKnightPoint = new Point ((GraphicsDevice.Viewport.Width - 32) / 2, (GraphicsDevice.Viewport.Height - 32) / 2 + 16);
+
+
+
+            //metaKnightPoint = new Point ((GraphicsDevice.Viewport.Width - 32) / 2, (GraphicsDevice.Viewport.Height - 32) / 2 + 16);
+            metaKnightPoint = new Point (0, 0);
+            metaKnightPointPrev = metaKnightPoint;
             metaKnightVertex = null;
 
+
+
             graph = new Graph<Point>();
-            GenerateGraph(GraphicsDevice.Viewport.Height - 32, GraphicsDevice.Viewport.Width - 32);
+            GenerateGraph((GraphicsDevice.Viewport.Height - 32) / 1, (GraphicsDevice.Viewport.Width - 32) / 1);
             priorityQueue = null;
             path = null;
+            pathIndex = 0;
+
+
 
             floor = new Rectangle(0, GraphicsDevice.Viewport.Height - 40, GraphicsDevice.Viewport.Width + 40, 20);
             roof = new Rectangle(0, 20, GraphicsDevice.Viewport.Width + 40, 20);
@@ -271,6 +283,10 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                     {
                         graph.RemoveVertex(new Vertex<Point>(new Point(x, hb.Y)));
                         graph.RemoveVertex(new Vertex<Point>(new Point(x, hb.Y + hb.Width)));
+
+                        //better optimized to change distance rather than remove each vertex
+                        //change it within verticies instead of this \/
+                        //graph.Search(new Point(x, hb.Y)).finalDistance *= 20;
                     }
                     for (int y = hb.Y; y < hb.Y + hb.Height; y++)
                     {
@@ -282,6 +298,9 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
         }
 
+        public bool test = false;
+        public Point kirbyPointSnappedOnGrid = new Point(0, 0);
+        public Vertex<Point> kirbyVertexSnappedOnGrid = new Vertex<Point>(default);
         protected override void Update(GameTime gameTime)
         {
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
@@ -314,70 +333,81 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             }*/
 
             //kirby movement
-            if (path != null && timer < path.Count)
+            kirbyPointSnappedOnGrid = new Point((int)Kirby.Position.X / 2, (int)Kirby.Position.Y);
+            kirbyVertexSnappedOnGrid = graph.Search(kirbyPointSnappedOnGrid);
+
+            //0 1  1 1  2 2    3 3
+            if (path != null && pathIndex < path.Count - 1)
             {
                 ;
-                /*if (path[timer].Value.X >= (int)(Kirby.Position.X + 32))
+                if (path[pathIndex].Value.X < path[pathIndex + 1].Value.X)
                 {
                     keysPressed.Add(Keys.Right);
-                }*/
-                if (path[timer].Value.X <= (int)(Kirby.Position.X - 1))
+                }
+                if (path[pathIndex].Value.X > path[pathIndex + 1].Value.X)
                 {
                     keysPressed.Add(Keys.Left);
                 }
-                /*
-                if (path[timer].Value.Y <= (int)(Kirby.Position.Y - 1))
-                {
-                    keysPressed.Add(Keys.Up);
-                }
-                if (path[timer].Value.Y >= (int)(Kirby.Position.Y + 32))
+                if (path[pathIndex].Value.Y < path[pathIndex + 1].Value.Y)
                 {
                     keysPressed.Add(Keys.Down);
                 }
-                */
+                if (path[pathIndex].Value.Y > path[pathIndex + 1].Value.Y)
+                {
+                    keysPressed.Add(Keys.Up);
+                }
+
+                pathIndex++;
             }
+            
+
             Kirby.Update(gameTime, hitBoxes, keysPressed);
 
             //metaknight(pretend) movement
             if (keysPressed.Contains(Keys.D))
             {
-                metaKnightPoint.X += 4;
+                metaKnightPoint.X += 2;
             }
             if (keysPressed.Contains(Keys.A))
             {
-                metaKnightPoint.X -= 4;
+                metaKnightPoint.X -= 2;
             }
             if (keysPressed.Contains(Keys.W))
             {
-                metaKnightPoint.Y -= 4;
+                metaKnightPoint.Y -= 1;
             }
             if (keysPressed.Contains(Keys.S))
             {
-                metaKnightPoint.Y += 4;
+                metaKnightPoint.Y += 1;
             }
 
             //tick update
             timer++;
-            if (timer >= 50)
+            if (timer >= 100)
             {
                 timer = 0;
 
                 //pathfinding update
                 priorityQueue = null;
 
-                kirbyPoint = new Point((int)Kirby.Position.X, (int)Kirby.Position.Y);
+                kirbyPoint = new Point((int)Kirby.Position.X / 2, (int)Kirby.Position.Y);
                 kirbyVertex = graph.Search(kirbyPoint);
 
                 //metaKnightPoint = new Point();
-                metaKnightVertex = graph.Search(metaKnightPoint);
-
-                if (path != null)
+                if (test)
                 {
-                    path.Clear();
+                    metaKnightVertex = graph.Search(new Point(metaKnightPoint.X / 2, metaKnightPoint.Y));
+
+                    if (path != null)
+                    {
+                        path.Clear();
+                    }
+
+                    path = graph.AStar(kirbyVertex, metaKnightVertex, Heuristics.Euclidean, out priorityQueue);
+                    pathIndex = 0;
                 }
 
-                path = graph.AStar(kirbyVertex, metaKnightVertex, Heuristics.Euclidean, out priorityQueue);
-
+                test = false;
                 //platforms closing in
                 /*
                 for (int i = 0; i < hitBoxes.Count; i++)
@@ -425,7 +455,13 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                     }
                 }*/
             }
+            if (metaKnightPointPrev != metaKnightPoint)
+            {
+                test = true;
+            }
 
+
+            metaKnightPointPrev = metaKnightPoint;
             base.Update(gameTime);
         }
 
