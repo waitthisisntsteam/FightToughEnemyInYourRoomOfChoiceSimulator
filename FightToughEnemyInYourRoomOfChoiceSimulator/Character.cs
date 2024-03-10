@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Security.Permissions;
 using System.Text.Json.Serialization.Metadata;
@@ -30,12 +31,17 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
         private int jumpCount;
         private bool upPressed;
-        private bool idle;
+        public bool idle;
         private float gravity;
+
+        private Keys up;
+        private Keys down;
+        private Keys left;
+        private Keys right;
 
         private Rectangle characterHB;
 
-        public Character(Vector2 Position, Texture2D Image, List<List<Frame>> Frames, float charXSpeed, float charYSpeed)
+        public Character(Vector2 Position, Texture2D Image, List<List<Frame>> Frames, float charXSpeed, float charYSpeed, Keys up, Keys down, Keys left, Keys right)
 
             : base(Position, Color.White, Image, SpriteEffects.None)
         {
@@ -52,6 +58,11 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             gravity = 0.2f;
             idle = true;
 
+            this.up = up;
+            this.down = down;
+            this.left = left;
+            this.right = right;
+
             characterState = CharacterState.Idling;
         }
 
@@ -59,7 +70,6 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
         public void Update(GameTime gameTime, List<Rectangle> hitBoxes, HashSet<Keys> keysDown)
         {
-            currentFrame++;
             if (characterState == CharacterState.Crouching)
             {
                 charYSpeed += gravity * 4;
@@ -68,14 +78,13 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             {
                 charYSpeed += gravity;
             }
-            idle = true;
 
-            if (keysDown.Contains(Keys.Up))
+            if (keysDown.Contains(up))
             {
                 idle = false;
                 upPressed = true;
             }
-            if (!keysDown.Contains(Keys.Up) && upPressed && jumpCount < 2)
+            if (!keysDown.Contains(up) && upPressed && jumpCount < 2)
             {
                 jumpCount++;
                 if (jumpCount == 1)
@@ -91,12 +100,12 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 currentFrame = 0;
             }
             Position.Y += charYSpeed;
-            if (keysDown.Contains(Keys.Down))
+            if (keysDown.Contains(down))
             {
                 characterState = CharacterState.Crouching;
                 idle = false;
             }
-            if (!keysDown.Contains(Keys.Down) && jumpCount > 0)
+            if (!keysDown.Contains(down) && jumpCount > 0)
             {
                 if (jumpCount == 1)
                 {
@@ -108,9 +117,9 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 }
                 idle = false;
             }
-            if (keysDown.Contains(Keys.Left))
+            if (keysDown.Contains(left))
             {
-                if (keysDown.Contains(Keys.Down))
+                if (keysDown.Contains(down))
                 {
                     Position.X -= charXSpeed / 2;
                     if (jumpCount == 0)
@@ -123,7 +132,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                     Position.X -= charXSpeed;
                 }
 
-                if (jumpCount == 0 && !keysDown.Contains(Keys.Down))
+                if (jumpCount == 0 && !keysDown.Contains(down))
                 {
                     characterState = CharacterState.Running;
                 }
@@ -131,9 +140,9 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 Direction = SpriteEffects.FlipHorizontally;
                 idle = false;
             }
-            if (keysDown.Contains(Keys.Right))
+            if (keysDown.Contains(right))
             {
-                if (keysDown.Contains(Keys.Down))
+                if (keysDown.Contains(down))
                 {
                     Position.X += charXSpeed / 2;
                     if (jumpCount == 0)
@@ -146,7 +155,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                     Position.X += charXSpeed;
                 }
 
-                if (jumpCount == 0 && !keysDown.Contains(Keys.Down))
+                if (jumpCount == 0 && !keysDown.Contains(down))
                 {
                     characterState = CharacterState.Running;
                 }
@@ -194,7 +203,14 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
         public Rectangle GetHitbox()
         {
-            characterHB = new Rectangle((int)Position.X, (int)Position.Y, 32, 32);
+            if (up == Keys.Up)
+            {
+               characterHB = new Rectangle((int)Position.X, (int)Position.Y, 32, 32);
+            }
+            if (up == Keys.W)
+            {
+                characterHB = new Rectangle((int)Position.X + 16, (int)Position.Y + 18, 32, 32);
+            }
 
             return characterHB;
         }

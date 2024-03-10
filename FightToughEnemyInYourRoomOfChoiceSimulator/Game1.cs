@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended.Serialization;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Ports;
@@ -38,10 +39,17 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         List<Frame> kirbyCrouchingFrames;
         List<Frame> kirbyCrouchMovingFrames;
 
-        //metaknight(pretend) setup
+        //metaKnight setup
+        Character MetaKnight;
         Point metaKnightPoint;
         Vertex<Point> metaKnightVertex;
-        Point metaKnightPointPrev;
+        Point kirbyPointPrev;
+        List<Frame> metaKnightIdleFrames;
+        List<Frame> metaKnightRunningFrames;
+        List<Frame> metaKnightJumpingFrames;
+        List<Frame> metaKnightDoubleJumpingFrames;
+        List<Frame> metaKnightCrouchingFrames;
+        List<Frame> metaKnightCrouchMovingFrames;
 
         //graph setup
         Graph<Point> graph;
@@ -61,7 +69,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
         //pathfinding grid setup
         static int TwoDToOneD(int x, int y, int width) => x + y * width;    
-        public void GenerateGraph(int rows, int columns)
+        public void GenerateGraph(int rows, int columns, List<Point> exclusionPoints) //the exclusions doesnt work \/\/\/\/
         {
             Point[] offsets = new Point[] { };
             offsets = new Point[] { new Point(1, 0), new Point(-1, 0), new Point(0, -1), new Point(0, 1), new Point(1, 1), new Point(1, -1), new Point(-1, 1), new Point(-1, -1) };
@@ -71,34 +79,37 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             {
                 for (int x = 0; x < columns * 1; x+=1)
                 {
-                    int num = TwoDToOneD(x, y, columns) + 1;
-                    if (graphValues.ContainsKey(num) == false)
+                    if (!exclusionPoints.Contains(new Point(x, y)))
                     {
-                        var vertex = new Vertex<Point>(new Point(x, y));
-                        graph.AddVertex(vertex);
-                        graphValues.Add(num, vertex);
-                    }
-
-                    for (int i = 0; i < offsets.Length; i++)
-                    {
-                        int newX = x + offsets[i].X*1;
-                        int newY = y + offsets[i].Y*1;
-                        Point newPoint = new Point(newX, newY);
-                        if (newPoint.X < 0 || newPoint.X >= columns * 1 || newPoint.Y < 0 || newPoint.Y >= rows * 1)
+                        int num = TwoDToOneD(x, y, columns) + 1;
+                        if (graphValues.ContainsKey(num) == false)
                         {
-                            continue;
-                        }
-
-                        int neighborValue = TwoDToOneD(newX, newY, columns) + 1;
-                        if (!graphValues.ContainsKey(neighborValue))
-                        {
-                            var vertex = new Vertex<Point>(new Point(newX, newY));
+                            var vertex = new Vertex<Point>(new Point(x, y));
                             graph.AddVertex(vertex);
-                            graphValues.Add(neighborValue, vertex);
+                            graphValues.Add(num, vertex);
                         }
 
-                        float distance = (float)Math.Sqrt(Math.Pow(newX - x, 2) + Math.Pow(newY - y, 2));
-                        graph.AddEdge(graphValues[num], graphValues[neighborValue], distance);
+                        for (int i = 0; i < offsets.Length; i++)
+                        {
+                            int newX = x + offsets[i].X * 1;
+                            int newY = y + offsets[i].Y * 1;
+                            Point newPoint = new Point(newX, newY);
+                            if (newPoint.X < 0 || newPoint.X >= columns * 1 || newPoint.Y < 0 || newPoint.Y >= rows * 1)
+                            {
+                                continue;
+                            }
+
+                            int neighborValue = TwoDToOneD(newX, newY, columns) + 1;
+                            if (!graphValues.ContainsKey(neighborValue))
+                            {
+                                var vertex = new Vertex<Point>(new Point(newX, newY));
+                                graph.AddVertex(vertex);
+                                graphValues.Add(neighborValue, vertex);
+                            }
+
+                            float distance = (float)Math.Sqrt(Math.Pow(newX - x, 2) + Math.Pow(newY - y, 2));
+                            graph.AddEdge(graphValues[num], graphValues[neighborValue], distance);
+                        }
                     }
                 }
             }
@@ -242,23 +253,41 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
             kirbyPoint = default;
             kirbyVertex = null;
+            kirbyPointPrev = kirbyPoint;
 
-            Kirby = new Character(new Vector2((GraphicsDevice.Viewport.Width - 32)/2, (GraphicsDevice.Viewport.Height - 32)/2), Content.Load<Texture2D>("kirby"), new List<List<Frame>>() { kirbyJumpingFrames, kirbyDoubleJumpingFrames, kirbyCrouchingFrames, kirbyCrouchMovingFrames, kirbyIdleFrames, kirbyRunningFrames, kirbyJumpingFrames }, 4f, 0.2f);
+            Kirby = new Character(new Vector2((GraphicsDevice.Viewport.Width - 32)/2 + 200, (GraphicsDevice.Viewport.Height - 32)/2), Content.Load<Texture2D>("kirby"), new List<List<Frame>>() { kirbyJumpingFrames, kirbyDoubleJumpingFrames, kirbyCrouchingFrames, kirbyCrouchMovingFrames, kirbyIdleFrames, kirbyRunningFrames, kirbyJumpingFrames }, 4f, 0.2f, Keys.Up, Keys.Down, Keys.Left, Keys.Right);
 
 
 
-            //metaKnightPoint = new Point ((GraphicsDevice.Viewport.Width - 32) / 2, (GraphicsDevice.Viewport.Height - 32) / 2 + 16);
-            metaKnightPoint = new Point (0, 0);
-            metaKnightPointPrev = metaKnightPoint;
+            metaKnightIdleFrames = new List<Frame>();
+            metaKnightRunningFrames = new List<Frame>();
+            metaKnightJumpingFrames = new List<Frame>();
+            metaKnightDoubleJumpingFrames = new List<Frame>();
+            metaKnightCrouchingFrames = new List<Frame>();
+            metaKnightCrouchMovingFrames = new List<Frame>();
+
+            metaKnightIdleFrames.Add(new Frame(Vector2.Zero, new Rectangle(127, 435, 41, 25)));
+            metaKnightIdleFrames.Add(new Frame(Vector2.Zero, new Rectangle(169, 435, 41, 25)));
+           
+            metaKnightRunningFrames.Add(new Frame(Vector2.Zero, new Rectangle(1, 436, 41, 25)));
+            metaKnightRunningFrames.Add(new Frame(Vector2.Zero, new Rectangle(43, 436, 41, 25)));
+          
+            metaKnightJumpingFrames.Add(new Frame(Vector2.Zero, new Rectangle(127, 436, 41, 25)));
+          
+            metaKnightDoubleJumpingFrames.Add(new Frame(Vector2.Zero, new Rectangle(85, 436, 41, 25)));
+            metaKnightDoubleJumpingFrames.Add(new Frame(Vector2.Zero, new Rectangle(85, 436, 41, 25)));
+            metaKnightDoubleJumpingFrames.Add(new Frame(Vector2.Zero, new Rectangle(127, 436, 41, 25)));
+            metaKnightDoubleJumpingFrames.Add(new Frame(Vector2.Zero, new Rectangle(127, 436, 41, 25)));
+            metaKnightDoubleJumpingFrames.Add(new Frame(Vector2.Zero, new Rectangle(127, 436, 41, 25)));
+          
+            metaKnightCrouchingFrames.Add(new Frame(Vector2.Zero, new Rectangle(211, 436, 41, 25)));
+       
+            metaKnightCrouchMovingFrames.Add(new Frame(Vector2.Zero, new Rectangle(211, 436, 41, 25)));
+
+            metaKnightPoint = default;
             metaKnightVertex = null;
 
-
-
-            graph = new Graph<Point>();
-            GenerateGraph((GraphicsDevice.Viewport.Height - 32) / 1, (GraphicsDevice.Viewport.Width - 32) / 1);
-            priorityQueue = null;
-            path = null;
-            pathIndex = 0;
+            MetaKnight = new Character(new Vector2((GraphicsDevice.Viewport.Width - 32) / 2 - 200, (GraphicsDevice.Viewport.Height - 32) / 2), Content.Load<Texture2D>("kirby"), new List<List<Frame>>() { metaKnightJumpingFrames, metaKnightDoubleJumpingFrames, metaKnightCrouchingFrames, metaKnightCrouchMovingFrames, metaKnightIdleFrames, metaKnightRunningFrames, metaKnightJumpingFrames }, 4.0f, 0.2f, Keys.W, Keys.S, Keys.A, Keys.D);
 
 
 
@@ -275,38 +304,43 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             platform = new Rectangle(GraphicsDevice.Viewport.Width / 2 - 150, GraphicsDevice.Viewport.Height - GraphicsDevice.Viewport.Height / 2 + 30, 300, 20);
             hitBoxes.Add(platform);
 
+            List<Point> excluded = new List<Point>();
             foreach (var hb in hitBoxes)
             {
                 if (hb == platform)
                 {
                     for (int x = hb.X; x < hb.X + hb.Width; x++)
                     {
-                        graph.RemoveVertex(new Vertex<Point>(new Point(x, hb.Y)));
-                        graph.RemoveVertex(new Vertex<Point>(new Point(x, hb.Y + hb.Width)));
-
-                        //better optimized to change distance rather than remove each vertex
-                        //change it within verticies instead of this \/
-                        //graph.Search(new Point(x, hb.Y)).finalDistance *= 20;
-                    }
-                    for (int y = hb.Y; y < hb.Y + hb.Height; y++)
-                    {
-                        graph.RemoveVertex(new Vertex<Point>(new Point(hb.X, y)));
-                        graph.RemoveVertex(new Vertex<Point>(new Point(hb.X + hb.Width, y)));
+                        for (int y = hb.Y; y < hb.Y + hb.Height; y++)
+                        {
+                            excluded.Add(new Point(x, y));
+                        }
                     }
                 }
             }
 
+            
+
+
+            graph = new Graph<Point>();
+            GenerateGraph((GraphicsDevice.Viewport.Height - 32) / 1, (GraphicsDevice.Viewport.Width - 32) / 1, excluded);
+            priorityQueue = null;
+            path = null;
+            pathIndex = 0;
         }
 
-        public bool test = false;
-        public Point kirbyPointSnappedOnGrid = new Point(0, 0);
-        public Vertex<Point> kirbyVertexSnappedOnGrid = new Vertex<Point>(default);
+        public bool kirbyIdle = false;
         protected override void Update(GameTime gameTime)
         {
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                 Exit();
 
             HashSet<Keys> keysPressed = new HashSet<Keys>(Keyboard.GetState().GetPressedKeys());
+            Kirby.currentFrame++;
+            Kirby.idle = true;
+
+            MetaKnight.currentFrame++;
+            MetaKnight.idle = true;
 
             //joystick added on movement if used
             /*if (joystickInUse)
@@ -333,28 +367,35 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             }*/
 
             //kirby movement
-            kirbyPointSnappedOnGrid = new Point((int)Kirby.Position.X / 2, (int)Kirby.Position.Y);
-            kirbyVertexSnappedOnGrid = graph.Search(kirbyPointSnappedOnGrid);
 
-            //0 1  1 1  2 2    3 3
             if (path != null && pathIndex < path.Count - 1)
             {
-                ;
-                if (path[pathIndex].Value.X < path[pathIndex + 1].Value.X)
+                MetaKnight.idle = false;
+
+                if (path[pathIndex].Value.X - 32 < path[pathIndex + 1].Value.X - 32)
                 {
-                    keysPressed.Add(Keys.Right);
+                    MetaKnight.Position.X += 4;
+
+                    MetaKnight.Direction = SpriteEffects.None;
+                    MetaKnight.characterState = CharacterState.Running;
                 }
-                if (path[pathIndex].Value.X > path[pathIndex + 1].Value.X)
+                else if (path[pathIndex].Value.X > path[pathIndex + 1].Value.X)
                 {
-                    keysPressed.Add(Keys.Left);
+                    MetaKnight.Position.X -= 4;
+
+                    MetaKnight.Direction = SpriteEffects.FlipHorizontally;
+                    MetaKnight.characterState = CharacterState.Running;
                 }
-                if (path[pathIndex].Value.Y < path[pathIndex + 1].Value.Y)
+                else if (path[pathIndex].Value.Y < path[pathIndex + 1].Value.Y)
                 {
-                    keysPressed.Add(Keys.Down);
+                    //Kirby.Position.Y += 1;
+                    //Kirby.characterState = CharacterState.Crouching;
                 }
-                if (path[pathIndex].Value.Y > path[pathIndex + 1].Value.Y)
+                else if (path[pathIndex].Value.Y > path[pathIndex + 1].Value.Y - 32)
                 {
-                    keysPressed.Add(Keys.Up);
+                    keysPressed.Add(Keys.W);
+                    MetaKnight.currentFrame = 0;
+                    MetaKnight.characterState = CharacterState.Jumping;
                 }
 
                 pathIndex++;
@@ -362,52 +403,35 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             
 
             Kirby.Update(gameTime, hitBoxes, keysPressed);
-
-            //metaknight(pretend) movement
-            if (keysPressed.Contains(Keys.D))
-            {
-                metaKnightPoint.X += 2;
-            }
-            if (keysPressed.Contains(Keys.A))
-            {
-                metaKnightPoint.X -= 2;
-            }
-            if (keysPressed.Contains(Keys.W))
-            {
-                metaKnightPoint.Y -= 1;
-            }
-            if (keysPressed.Contains(Keys.S))
-            {
-                metaKnightPoint.Y += 1;
-            }
+            MetaKnight.Update(gameTime, hitBoxes, keysPressed);
 
             //tick update
             timer++;
-            if (timer >= 100)
+            if (timer >= 40)
             {
                 timer = 0;
 
                 //pathfinding update
                 priorityQueue = null;
 
-                kirbyPoint = new Point((int)Kirby.Position.X / 2, (int)Kirby.Position.Y);
+                kirbyPoint = new Point((int)Kirby.Position.X / 4, (int)Kirby.Position.Y);
                 kirbyVertex = graph.Search(kirbyPoint);
 
-                //metaKnightPoint = new Point();
-                if (test)
+                if (kirbyIdle)
                 {
-                    metaKnightVertex = graph.Search(new Point(metaKnightPoint.X / 2, metaKnightPoint.Y));
+                    metaKnightPoint = new Point((int)MetaKnight.Position.X / 4, (int)MetaKnight.Position.Y);
+                    metaKnightVertex = graph.Search(metaKnightPoint);
 
                     if (path != null)
                     {
                         path.Clear();
                     }
 
-                    path = graph.AStar(kirbyVertex, metaKnightVertex, Heuristics.Euclidean, out priorityQueue);
+                    path = graph.AStar(metaKnightVertex, kirbyVertex, Heuristics.Euclidean, out priorityQueue);
                     pathIndex = 0;
                 }
 
-                test = false;
+                kirbyIdle = false;
                 //platforms closing in
                 /*
                 for (int i = 0; i < hitBoxes.Count; i++)
@@ -455,13 +479,13 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                     }
                 }*/
             }
-            if (metaKnightPointPrev != metaKnightPoint)
+            if (kirbyPointPrev != kirbyPoint)
             {
-                test = true;
+                kirbyIdle = true;
             }
 
 
-            metaKnightPointPrev = metaKnightPoint;
+            kirbyPointPrev = kirbyPoint;
             base.Update(gameTime);
         }
 
@@ -476,6 +500,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
             //draw characters
             Kirby.Draw(spriteBatch);
+            MetaKnight.Draw(spriteBatch);
 
             //draw hiboxes
             foreach (var hb in hitBoxes)
@@ -483,7 +508,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 spriteBatch.Draw(Content.Load<Texture2D>("platform"), new Rectangle(hb.X, hb.Y, hb.Width, hb.Height), Color.White);
             }
             //spriteBatch.Draw(Content.Load<Texture2D>("hitbox"), new Rectangle((int)Kirby.Position.X, (int)Kirby.Position.Y, 32, 32), Color.White);
-            spriteBatch.Draw(Content.Load<Texture2D>("hitbox"), new Rectangle(metaKnightPoint.X, metaKnightPoint.Y, 5, 5), Color.White);
+            //spriteBatch.Draw(Content.Load<Texture2D>("hitbox"), new Rectangle(kirbyPoint.X, kirbyPoint.Y, 5, 5), Color.White);
 
             spriteBatch.End();
 
