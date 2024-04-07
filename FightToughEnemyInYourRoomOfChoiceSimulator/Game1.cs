@@ -69,7 +69,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
         //pathfinding grid setup
         static int TwoDToOneD(int x, int y, int width) => x + y * width;    
-        public void GenerateGraph(int rows, int columns, List<Point> exclusionPoints) //the exclusions doesnt work \/\/\/\/
+        public void GenerateGraph(int rows, int columns, List<Point> exclusionPoints)
         {
             Point[] offsets = new Point[] { };
             offsets = new Point[] { new Point(1, 0), new Point(-1, 0), new Point(0, -1), new Point(0, 1), new Point(1, 1), new Point(1, -1), new Point(-1, 1), new Point(-1, -1) };
@@ -79,40 +79,61 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             {
                 for (int x = 0; x < columns * 1; x+=1)
                 {
-                    if (!exclusionPoints.Contains(new Point(x, y)))
+                    int num = TwoDToOneD(x, y, columns) + 1;
+                    if (graphValues.ContainsKey(num) == false)
                     {
-                        int num = TwoDToOneD(x, y, columns) + 1;
-                        if (graphValues.ContainsKey(num) == false)
-                        {
-                            var vertex = new Vertex<Point>(new Point(x, y));
-                            graph.AddVertex(vertex);
-                            graphValues.Add(num, vertex);
-                        }
-
-                        for (int i = 0; i < offsets.Length; i++)
-                        {
-                            int newX = x + offsets[i].X * 1;
-                            int newY = y + offsets[i].Y * 1;
-                            Point newPoint = new Point(newX, newY);
-                            if (newPoint.X < 0 || newPoint.X >= columns * 1 || newPoint.Y < 0 || newPoint.Y >= rows * 1)
-                            {
-                                continue;
-                            }
-
-                            int neighborValue = TwoDToOneD(newX, newY, columns) + 1;
-                            if (!graphValues.ContainsKey(neighborValue))
-                            {
-                                var vertex = new Vertex<Point>(new Point(newX, newY));
-                                graph.AddVertex(vertex);
-                                graphValues.Add(neighborValue, vertex);
-                            }
-
-                            float distance = (float)Math.Sqrt(Math.Pow(newX - x, 2) + Math.Pow(newY - y, 2));
-                            graph.AddEdge(graphValues[num], graphValues[neighborValue], distance);
-                        }
+                        var vertex = new Vertex<Point>(new Point(x, y));
+                        graph.AddVertex(vertex);
+                        graphValues.Add(num, vertex);
                     }
+                    
+                    for (int i = 0; i < offsets.Length; i++)
+                    {
+                        int newX = x + offsets[i].X * 1;
+                        int newY = y + offsets[i].Y * 1;
+                        Point newPoint = new Point(newX, newY);
+                        if (newPoint.X < 0 || newPoint.X >= columns * 1 || newPoint.Y < 0 || newPoint.Y >= rows * 1)
+                        {
+                            continue;
+                        }
+                        
+                        int neighborValue = TwoDToOneD(newX, newY, columns) + 1;
+                        if (!graphValues.ContainsKey(neighborValue))
+                        {
+                            var vertex = new Vertex<Point>(new Point(newX, newY));
+                            graph.AddVertex(vertex);
+                            graphValues.Add(neighborValue, vertex);
+                        }
+                        
+                        float distance = (float)Math.Sqrt(Math.Pow(newX - x, 2) + Math.Pow(newY - y, 2));
+                        if (exclusionPoints.Contains(new Point(x, y)))
+                        {
+                            distance += 100;
+                        }
+                        graph.AddEdge(graphValues[num], graphValues[neighborValue], distance);
+                    }                  
                 }
             }
+        }
+
+        public List<Vertex<Point>> PathOptimizer(List<Vertex<Point>> originalPath)
+        {
+            List<Vertex<Point>> newPath = new List<Vertex<Point>>();
+            List<Point> points = new List<Point>();
+
+            foreach(Vertex<Point> v in originalPath)
+            {
+                Vertex<Point> newV = new Vertex<Point>(new Point((int)v.Value.X / 4, v.Value.Y));
+                Point newP = newV.Value;
+
+                if (!points.Contains(newP))
+                {
+                    points.Add(newP);
+                    newPath.Add(newV);
+                }
+            }
+
+            return newPath;
         }
 
         //joystick added on movement if used
@@ -309,9 +330,9 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             {
                 if (hb == platform)
                 {
-                    for (int x = hb.X; x < hb.X + hb.Width; x++)
+                    for (int x = hb.X - 50; x < hb.X + hb.Width + 50; x++)
                     {
-                        for (int y = hb.Y; y < hb.Y + hb.Height; y++)
+                        for (int y = hb.Y; y < hb.Y + hb.Height + 100; y++)
                         {
                             excluded.Add(new Point(x, y));
                         }
@@ -414,12 +435,12 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 //pathfinding update
                 priorityQueue = null;
 
-                kirbyPoint = new Point((int)Kirby.Position.X / 4, (int)Kirby.Position.Y);
+                kirbyPoint = new Point((int)Kirby.Position.X, (int)Kirby.Position.Y);
                 kirbyVertex = graph.Search(kirbyPoint);
 
                 if (kirbyIdle)
                 {
-                    metaKnightPoint = new Point((int)MetaKnight.Position.X / 4, (int)MetaKnight.Position.Y);
+                    metaKnightPoint = new Point((int)MetaKnight.Position.X, (int)MetaKnight.Position.Y);
                     metaKnightVertex = graph.Search(metaKnightPoint);
 
                     if (path != null)
@@ -428,6 +449,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                     }
 
                     path = graph.AStar(metaKnightVertex, kirbyVertex, Heuristics.Euclidean, out priorityQueue);
+                    path = PathOptimizer(path);
                     pathIndex = 0;
                 }
 
