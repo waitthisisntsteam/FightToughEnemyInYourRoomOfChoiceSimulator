@@ -29,6 +29,8 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         private float charXSpeed;
         private float charYSpeed;
 
+        private bool phaseThrough;
+
         private int jumpCount;
         private bool upPressed;
         public bool idle;
@@ -62,6 +64,8 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             this.down = down;
             this.left = left;
             this.right = right;
+
+            phaseThrough = false;
 
             characterState = CharacterState.Idling;
         }
@@ -103,6 +107,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             if (keysDown.Contains(down))
             {
                 characterState = CharacterState.Crouching;
+                phaseThrough = true;
                 idle = false;
             }
             if (!keysDown.Contains(down) && jumpCount > 0)
@@ -179,22 +184,30 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             {
                 if (characterHB.Intersects(hB))
                 {
-                    if (characterHB.Bottom >= hB.Top && characterHB.Y < hB.Top - characterHB.Height + charYSpeed + 10 && characterHB.Right < hB.Right && characterHB.Left > hB.Left)
+                    if (hB.Top == 440)
+                    {
+                        phaseThrough = false;
+                    }
+
+                    if (!phaseThrough && characterHB.Bottom >= hB.Top && characterHB.Y < hB.Top - characterHB.Height + charYSpeed + 10 && characterHB.Right < hB.Right && characterHB.Left > hB.Left)
                     {
                         Position.Y -= charYSpeed;
                         charYSpeed = 0;
                         jumpCount = 0;
                     }
-                    else if (characterHB.Top <= hB.Bottom && characterHB.Bottom > hB.Bottom && characterHB.Right < hB.Right && characterHB.Left > hB.Left)
-                    {
-                        Position.Y = hB.Bottom;
-                    }
+                    //else if (characterHB.Top <= hB.Bottom && characterHB.Bottom > hB.Bottom && characterHB.Right < hB.Right && characterHB.Left > hB.Left)
+                    //{
+                    //    phaseThrough = false;
+                    //    Position.Y = hB.Bottom;
+                    //}
                     else if (characterHB.Left <= hB.Right && Direction == SpriteEffects.FlipHorizontally && characterHB.Right > hB.Right && characterHB.Left < hB.Left)
                     {
+                        phaseThrough = false;
                         Position.X += charXSpeed;
                     }
                     else if (characterHB.Right >= hB.Left && Direction == SpriteEffects.None && characterHB.Right > hB.Right && characterHB.Left < hB.Left)
                     {
+                        phaseThrough = false;
                         Position.X -= charXSpeed;
                     }
                 }

@@ -116,25 +116,25 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             }
         }
 
-        public List<Vertex<Point>> PathOptimizer(List<Vertex<Point>> originalPath)
-        {
-            List<Vertex<Point>> newPath = new List<Vertex<Point>>();
-            List<Point> points = new List<Point>();
+        //public List<Vertex<Point>> PathOptimizer(List<Vertex<Point>> originalPath)
+        //{
+        //    List<Vertex<Point>> newPath = new List<Vertex<Point>>();
+        //    List<Point> points = new List<Point>();
 
-            foreach(Vertex<Point> v in originalPath)
-            {
-                Vertex<Point> newV = new Vertex<Point>(new Point((int)v.Value.X / 4, v.Value.Y));
-                Point newP = newV.Value;
+        //    foreach(Vertex<Point> v in originalPath)
+        //    {
+        //        Vertex<Point> newV = new Vertex<Point>(new Point(v.Value.X / 4, v.Value.Y));
+        //        Point newP = newV.Value;
 
-                if (!points.Contains(newP))
-                {
-                    points.Add(newP);
-                    newPath.Add(newV);
-                }
-            }
-
-            return newPath;
-        }
+        //        if (!points.Contains(newP))
+        //        {
+        //            points.Add(newP);
+        //            newPath.Add(newV);
+        //        }
+        //    }
+        //
+        //    return newPath;
+        //}
 
         //joystick added on movement if used
         private void JoystickInput (HashSet<Keys> keys)
@@ -407,10 +407,14 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                     MetaKnight.Direction = SpriteEffects.FlipHorizontally;
                     MetaKnight.characterState = CharacterState.Running;
                 }
-                else if (path[pathIndex].Value.Y < path[pathIndex + 1].Value.Y)
+                else if (path[pathIndex].Value.Y < path[pathIndex + 1].Value.Y && MetaKnight.Position.Y < Kirby.Position.Y)
                 {
-                    //Kirby.Position.Y += 1;
-                    //Kirby.characterState = CharacterState.Crouching;
+                    //keysPressed.Add(Keys.S);
+
+                    MetaKnight.Position.Y++;
+
+                    MetaKnight.currentFrame = 0;
+                    MetaKnight.characterState = CharacterState.Crouching;
                 }
                 else if (path[pathIndex].Value.Y > path[pathIndex + 1].Value.Y - 32)
                 {
@@ -435,12 +439,12 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 //pathfinding update
                 priorityQueue = null;
 
-                kirbyPoint = new Point((int)Kirby.Position.X, (int)Kirby.Position.Y);
+                kirbyPoint = new Point((int)Kirby.Position.X / 4, (int)Kirby.Position.Y);
                 kirbyVertex = graph.Search(kirbyPoint);
 
                 if (kirbyIdle)
                 {
-                    metaKnightPoint = new Point((int)MetaKnight.Position.X, (int)MetaKnight.Position.Y);
+                    metaKnightPoint = new Point((int)MetaKnight.Position.X / 4, (int)MetaKnight.Position.Y);
                     metaKnightVertex = graph.Search(metaKnightPoint);
 
                     if (path != null)
@@ -449,7 +453,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                     }
 
                     path = graph.AStar(metaKnightVertex, kirbyVertex, Heuristics.Euclidean, out priorityQueue);
-                    path = PathOptimizer(path);
+                    //path = PathOptimizer(path);
                     pathIndex = 0;
                 }
 
