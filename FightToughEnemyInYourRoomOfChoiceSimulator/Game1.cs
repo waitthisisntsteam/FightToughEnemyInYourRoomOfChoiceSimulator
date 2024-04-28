@@ -10,7 +10,7 @@ using System.IO;
 using System.IO.Ports;
 using System.Linq;
 using System.Management;
-
+using System.Threading;
 using Weighted_Directed_Graph;
 
 namespace FightToughEnemyInYourRoomOfChoiceSimulator
@@ -65,7 +65,11 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         Rectangle platform;
 
         //timer lol
-        int timer;
+        int updateTimer;
+        int gameTimer;
+        List<int> timerCounts;
+
+        bool captured;
 
         //pathfinding grid setup
         static int TwoDToOneD(int x, int y, int width) => x + y * width;    
@@ -104,8 +108,8 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                             graph.AddVertex(vertex);
                             graphValues.Add(neighborValue, vertex);
                         }
-                        
-                        float distance = (float)Math.Sqrt(Math.Pow(newX - x, 2) + Math.Pow(newY - y, 2));
+
+                        float distance = 1; // (float)Math.Sqrt(Math.Pow(newX - x, 2) + Math.Pow(newY - y, 2));
                         if (exclusionPoints.Contains(new Point(x, y)))
                         {
                             distance += 100;
@@ -188,7 +192,8 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
         protected override void Initialize()
         {
-            timer = 0;
+            updateTimer = 0;
+            gameTimer = 0;
 
             Console.WriteLine("Searching for Controller...");
 
@@ -277,7 +282,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             kirbyPointPrev = kirbyPoint;
 
             Kirby = new Character(new Vector2((GraphicsDevice.Viewport.Width - 32)/2 + 200, (GraphicsDevice.Viewport.Height - 32)/2), Content.Load<Texture2D>("kirby"), new List<List<Frame>>() { kirbyJumpingFrames, kirbyDoubleJumpingFrames, kirbyCrouchingFrames, kirbyCrouchMovingFrames, kirbyIdleFrames, kirbyRunningFrames, kirbyJumpingFrames }, 4f, 0.2f, Keys.Up, Keys.Down, Keys.Left, Keys.Right);
-
+            captured = false;
 
 
             metaKnightIdleFrames = new List<Frame>();
@@ -312,10 +317,10 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
 
 
-            floor = new Rectangle(0, GraphicsDevice.Viewport.Height - 40, GraphicsDevice.Viewport.Width + 40, 20);
-            roof = new Rectangle(0, 20, GraphicsDevice.Viewport.Width + 40, 20);
-            leftWall = new Rectangle(20, -20, 20, GraphicsDevice.Viewport.Height + 40);
-            rightWall = new Rectangle(GraphicsDevice.Viewport.Width - 40, -20, 20, GraphicsDevice.Viewport.Height + 40);
+            floor = new Rectangle(0, GraphicsDevice.Viewport.Height - 40, GraphicsDevice.Viewport.Width + 40, 30);
+            roof = new Rectangle(0, 20, GraphicsDevice.Viewport.Width + 40, 30);
+            leftWall = new Rectangle(20, -20, 30, GraphicsDevice.Viewport.Height + 40);
+            rightWall = new Rectangle(GraphicsDevice.Viewport.Width - 40, -20, 30, GraphicsDevice.Viewport.Height + 40);
 
             hitBoxes.Add(floor);
             hitBoxes.Add(roof);
@@ -357,11 +362,31 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 Exit();
 
             HashSet<Keys> keysPressed = new HashSet<Keys>(Keyboard.GetState().GetPressedKeys());
-            Kirby.currentFrame++;
-            Kirby.idle = true;
 
-            MetaKnight.currentFrame++;
-            MetaKnight.idle = true;
+            //restart
+            if (keysPressed.Contains(Keys.Enter))
+            {
+                floor = new Rectangle(0, GraphicsDevice.Viewport.Height - 40, GraphicsDevice.Viewport.Width + 40, 30);
+                roof = new Rectangle(0, 20, GraphicsDevice.Viewport.Width + 40, 30);
+                leftWall = new Rectangle(20, -20, 30, GraphicsDevice.Viewport.Height + 40);
+                rightWall = new Rectangle(GraphicsDevice.Viewport.Width - 40, -20, 30, GraphicsDevice.Viewport.Height + 40);
+
+                metaKnightPoint = default;
+                metaKnightVertex = null;
+                MetaKnight = new Character(new Vector2((GraphicsDevice.Viewport.Width - 32) / 2 - 200, (GraphicsDevice.Viewport.Height - 32) / 2), Content.Load<Texture2D>("kirby"), new List<List<Frame>>() { metaKnightJumpingFrames, metaKnightDoubleJumpingFrames, metaKnightCrouchingFrames, metaKnightCrouchMovingFrames, metaKnightIdleFrames, metaKnightRunningFrames, metaKnightJumpingFrames }, 4.0f, 0.2f, Keys.W, Keys.S, Keys.A, Keys.D);
+                
+                kirbyPoint = default;
+                kirbyVertex = null;
+                kirbyPointPrev = kirbyPoint;
+                Kirby = new Character(new Vector2((GraphicsDevice.Viewport.Width - 32) / 2 + 200, (GraphicsDevice.Viewport.Height - 32) / 2), Content.Load<Texture2D>("kirby"), new List<List<Frame>>() { kirbyJumpingFrames, kirbyDoubleJumpingFrames, kirbyCrouchingFrames, kirbyCrouchMovingFrames, kirbyIdleFrames, kirbyRunningFrames, kirbyJumpingFrames }, 4f, 0.2f, Keys.Up, Keys.Down, Keys.Left, Keys.Right);
+                captured = false;
+
+                priorityQueue = null;
+                path = null;
+                pathIndex = 0;
+
+                updateTimer = 0;
+            }
 
             //joystick added on movement if used
             /*if (joystickInUse)
@@ -388,130 +413,167 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             }*/
 
             //kirby movement
-
-            if (path != null && pathIndex < path.Count - 1)
+            Kirby.currentFrame++;
+            MetaKnight.currentFrame++;
+            if (!captured)
             {
-                MetaKnight.idle = false;
+                gameTimer++;
 
-                if (path[pathIndex].Value.X - 32 < path[pathIndex + 1].Value.X - 32)
+                Kirby.idle = true;
+                MetaKnight.idle = true;
+
+                if (path != null && pathIndex < path.Count - 1)
                 {
-                    MetaKnight.Position.X += 4;
+                    MetaKnight.idle = false;
 
-                    MetaKnight.Direction = SpriteEffects.None;
-                    MetaKnight.characterState = CharacterState.Running;
+                    if (path[pathIndex].Value.X - 32 < path[pathIndex + 1].Value.X - 32)
+                    {
+                        keysPressed.Add(Keys.D);
+                        //MetaKnight.Position.X += 4;
+
+                        MetaKnight.Direction = SpriteEffects.None;
+                        MetaKnight.characterState = CharacterState.Running;
+                    }
+                    else if (path[pathIndex].Value.X > path[pathIndex + 1].Value.X)
+                    {
+                        keysPressed.Add(Keys.A);
+                        //MetaKnight.Position.X -= 4;
+
+                        MetaKnight.Direction = SpriteEffects.FlipHorizontally;
+                        MetaKnight.characterState = CharacterState.Running;
+                    }
+                    else if (path[pathIndex].Value.Y < path[pathIndex + 1].Value.Y && MetaKnight.Position.Y < Kirby.Position.Y)
+                    {
+                        keysPressed.Add(Keys.S);
+
+                        MetaKnight.currentFrame = 0;
+                        MetaKnight.characterState = CharacterState.Crouching;
+                    }
+                    else if (path[pathIndex].Value.Y > path[pathIndex + 1].Value.Y - 32)
+                    {
+                        keysPressed.Add(Keys.W);
+
+                        MetaKnight.currentFrame = 0;
+                        MetaKnight.characterState = CharacterState.Jumping;
+                    }
+
+                    pathIndex++;
                 }
-                else if (path[pathIndex].Value.X > path[pathIndex + 1].Value.X)
+
+
+                Kirby.Update(gameTime, hitBoxes, keysPressed);
+                MetaKnight.Update(gameTime, hitBoxes, keysPressed);
+
+                //tick update
+                updateTimer++;
+                if (updateTimer >= 70)
                 {
-                    MetaKnight.Position.X -= 4;
+                    updateTimer = 0;
 
-                    MetaKnight.Direction = SpriteEffects.FlipHorizontally;
-                    MetaKnight.characterState = CharacterState.Running;
+                    //pathfinding update
+                    priorityQueue = null;
+
+                    kirbyPoint = new Point((int)Kirby.Position.X / 4, (int)Kirby.Position.Y);
+                    kirbyVertex = graph.Search(kirbyPoint);
+
+                    if (kirbyIdle)
+                    {
+                        metaKnightPoint = new Point((int)MetaKnight.Position.X / 4, (int)MetaKnight.Position.Y);
+                        metaKnightVertex = graph.Search(metaKnightPoint);
+
+                        if (path != null)
+                        {
+                            path.Clear();
+                        }
+
+                        path = graph.AStar(metaKnightVertex, kirbyVertex, Heuristics.Euclidean, out priorityQueue);
+                        //path = PathOptimizer(path);
+                        pathIndex = 0;
+                    }
+
+                    kirbyIdle = false;
+                    //platforms closing in
+                    for (int i = 0; i < hitBoxes.Count; i++)
+                    {
+
+                        if (hitBoxes[i] == roof)
+                        {
+                            hitBoxes[i] = new Rectangle(hitBoxes[i].X, hitBoxes[i].Y+1, hitBoxes[i].Width, hitBoxes[i].Height);
+                            roof = hitBoxes[i];
+
+                            if (Kirby.GetHitbox().Intersects(hitBoxes[i]))
+                            {
+                                Kirby.Position.Y++;
+                            }
+                        }
+                        if (hitBoxes[i] == floor)
+                        {
+                            hitBoxes[i] = new Rectangle(hitBoxes[i].X, hitBoxes[i].Y-1, hitBoxes[i].Width, hitBoxes[i].Height);
+                            floor = hitBoxes[i];
+
+                            if (Kirby.GetHitbox().Intersects(hitBoxes[i]))
+                            {
+                                Kirby.Position.Y--;
+                            }
+                        }
+                        if (hitBoxes[i] == leftWall)
+                        {
+                            hitBoxes[i] = new Rectangle(hitBoxes[i].X+1, hitBoxes[i].Y, hitBoxes[i].Width, hitBoxes[i].Height);
+                            leftWall = hitBoxes[i];
+
+                            if (Kirby.GetHitbox().Intersects(hitBoxes[i]))
+                            {
+                                Kirby.Position.X++;
+                            }
+                        }
+                        if (hitBoxes[i] == rightWall)
+                        {
+                            hitBoxes[i] = new Rectangle(hitBoxes[i].X-1, hitBoxes[i].Y, hitBoxes[i].Width, hitBoxes[i].Height);
+                            rightWall = hitBoxes[i];
+
+                            if (Kirby.GetHitbox().Intersects(hitBoxes[i]))
+                            {
+                                Kirby.Position.X--;
+                            }
+                        }
+                    }
                 }
-                else if (path[pathIndex].Value.Y < path[pathIndex + 1].Value.Y && MetaKnight.Position.Y < Kirby.Position.Y)
+
+
+                if (kirbyPointPrev != kirbyPoint)
                 {
-                    //keysPressed.Add(Keys.S);
-
-                    MetaKnight.Position.Y++;
-
-                    MetaKnight.currentFrame = 0;
-                    MetaKnight.characterState = CharacterState.Crouching;
+                    kirbyIdle = true;
                 }
-                else if (path[pathIndex].Value.Y > path[pathIndex + 1].Value.Y - 32)
+
+                kirbyPointPrev = kirbyPoint;
+
+
+                if (Kirby.GetHitbox().Intersects(MetaKnight.GetHitbox()))
                 {
-                    keysPressed.Add(Keys.W);
-                    MetaKnight.currentFrame = 0;
-                    MetaKnight.characterState = CharacterState.Jumping;
-                }
+                    //bool 
+                    Kirby.characterState = CharacterState.Jumping;
+                    MetaKnight.characterState = CharacterState.Idling;
+                    timerCounts.Add(gameTimer);
 
-                pathIndex++;
+                    //Console.WriteLine();
+                    //for (int i = 0; i < timerCounts.Count; i++)
+                    //{
+                    //    if (gameTimer < timerCounts[i])
+                    //    {
+                            
+                    //    }
+                    //}
+                    //if (timerCounts.Count <= 1)
+                    //{
+                    //    Console.WriteLine("New Highscore!");
+                    //}
+                    //Console.WriteLine($"You survived for {gameTimer} ticks!");
+
+                    captured = true;
+                }
             }
-            
-
-            Kirby.Update(gameTime, hitBoxes, keysPressed);
-            MetaKnight.Update(gameTime, hitBoxes, keysPressed);
-
-            //tick update
-            timer++;
-            if (timer >= 40)
-            {
-                timer = 0;
-
-                //pathfinding update
-                priorityQueue = null;
-
-                kirbyPoint = new Point((int)Kirby.Position.X / 4, (int)Kirby.Position.Y);
-                kirbyVertex = graph.Search(kirbyPoint);
-
-                if (kirbyIdle)
-                {
-                    metaKnightPoint = new Point((int)MetaKnight.Position.X / 4, (int)MetaKnight.Position.Y);
-                    metaKnightVertex = graph.Search(metaKnightPoint);
-
-                    if (path != null)
-                    {
-                        path.Clear();
-                    }
-
-                    path = graph.AStar(metaKnightVertex, kirbyVertex, Heuristics.Euclidean, out priorityQueue);
-                    //path = PathOptimizer(path);
-                    pathIndex = 0;
-                }
-
-                kirbyIdle = false;
-                //platforms closing in
-                /*
-                for (int i = 0; i < hitBoxes.Count; i++)
-                {
-
-                    if (hitBoxes[i] == roof)
-                    {
-                        hitBoxes[i] = new Rectangle(hitBoxes[i].X, hitBoxes[i].Y+1, hitBoxes[i].Width, hitBoxes[i].Height);
-                        roof = hitBoxes[i];
-
-                        if (Kirby.GetHitbox().Intersects(hitBoxes[i]))
-                        {
-                            Kirby.Position.Y++;
-                        }
-                    }
-                    if (hitBoxes[i] == floor)
-                    {
-                        hitBoxes[i] = new Rectangle(hitBoxes[i].X, hitBoxes[i].Y-1, hitBoxes[i].Width, hitBoxes[i].Height);
-                        floor = hitBoxes[i];
-
-                        if (Kirby.GetHitbox().Intersects(hitBoxes[i]))
-                        {
-                            Kirby.Position.Y--;
-                        }
-                    }
-                    if (hitBoxes[i] == leftWall)
-                    {
-                        hitBoxes[i] = new Rectangle(hitBoxes[i].X+1, hitBoxes[i].Y, hitBoxes[i].Width, hitBoxes[i].Height);
-                        leftWall = hitBoxes[i];
-
-                        if (Kirby.GetHitbox().Intersects(hitBoxes[i]))
-                        {
-                            Kirby.Position.X++;
-                        }
-                    }
-                    if (hitBoxes[i] == rightWall)
-                    {
-                        hitBoxes[i] = new Rectangle(hitBoxes[i].X-1, hitBoxes[i].Y, hitBoxes[i].Width, hitBoxes[i].Height);
-                        rightWall = hitBoxes[i];
-
-                        if (Kirby.GetHitbox().Intersects(hitBoxes[i]))
-                        {
-                            Kirby.Position.X--;
-                        }
-                    }
-                }*/
-            }
-            if (kirbyPointPrev != kirbyPoint)
-            {
-                kirbyIdle = true;
-            }
 
 
-            kirbyPointPrev = kirbyPoint;
             base.Update(gameTime);
         }
 

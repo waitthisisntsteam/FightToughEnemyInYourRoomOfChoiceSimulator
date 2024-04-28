@@ -74,6 +74,8 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
         public void Update(GameTime gameTime, List<Rectangle> hitBoxes, HashSet<Keys> keysDown)
         {
+            phaseThrough = false;
+
             if (characterState == CharacterState.Crouching)
             {
                 charYSpeed += gravity * 4;
@@ -106,7 +108,6 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             Position.Y += charYSpeed;
             if (keysDown.Contains(down))
             {
-                characterState = CharacterState.Crouching;
                 phaseThrough = true;
                 idle = false;
             }
@@ -184,7 +185,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             {
                 if (characterHB.Intersects(hB))
                 {
-                    if (hB.Top == 440)
+                    if (Math.Abs(hB.Height) > 20)
                     {
                         phaseThrough = false;
                     }
@@ -202,12 +203,10 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                     //}
                     else if (characterHB.Left <= hB.Right && Direction == SpriteEffects.FlipHorizontally && characterHB.Right > hB.Right && characterHB.Left < hB.Left)
                     {
-                        phaseThrough = false;
                         Position.X += charXSpeed;
                     }
                     else if (characterHB.Right >= hB.Left && Direction == SpriteEffects.None && characterHB.Right > hB.Right && characterHB.Left < hB.Left)
                     {
-                        phaseThrough = false;
                         Position.X -= charXSpeed;
                     }
                 }
