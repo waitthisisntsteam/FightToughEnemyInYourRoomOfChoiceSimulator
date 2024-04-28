@@ -73,48 +73,74 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
         //pathfinding grid setup
         static int TwoDToOneD(int x, int y, int width) => x + y * width;    
-        public void GenerateGraph(int rows, int columns, List<Point> exclusionPoints)
+        public void GenerateGraph(int rows, int columns, HashSet<Point> exclusionPoints)
         {
-            Point[] offsets = new Point[] { };
-            offsets = new Point[] { new Point(1, 0), new Point(-1, 0), new Point(0, -1), new Point(0, 1), new Point(1, 1), new Point(1, -1), new Point(-1, 1), new Point(-1, -1) };
+            float root2 = (float)Math.Sqrt(2);
 
-            Dictionary<int, Vertex<Point>> graphValues = new Dictionary<int, Vertex<Point>>();
-            for (int y = 0; y < rows * 1; y+=1)
+            (Point point, float distance)[] offsets = new (Point, float)[] 
+            { 
+                (new Point(1, 0), 1),
+                (new Point(-1, 0), 1),
+                (new Point(0, -1), 1), 
+                (new Point(0, 1), 1),
+                (new Point(1, 1), root2),
+                (new Point(1, -1), root2),
+                (new Point(-1, 1), root2),
+                (new Point(-1, -1), root2)
+            };
+
+            Vertex<Point>[] graphValues = new Vertex<Point>[rows * columns + 1];
+            for (int y = 0; y < rows * 1; y += 1)
             {
-                for (int x = 0; x < columns * 1; x+=1)
+                for (int x = 0; x < columns * 1; x += 1)
                 {
+                    var vertex = new Vertex<Point>(new Point(x, y));
+                    graph.AddVertex(vertex);
+
                     int num = TwoDToOneD(x, y, columns) + 1;
+                    graphValues[num] = vertex;
+
+                    /*
                     if (graphValues.ContainsKey(num) == false)
                     {
                         var vertex = new Vertex<Point>(new Point(x, y));
                         graph.AddVertex(vertex);
-                        graphValues.Add(num, vertex);
                     }
-                    
+                    */
+                }
+            }
+
+            for (int y = 0; y < rows * 1; y += 1)
+            {
+                for (int x = 0; x < columns * 1; x += 1)
+                {
+                    int currentVertexID = TwoDToOneD(x, y, columns) + 1;
+
                     for (int i = 0; i < offsets.Length; i++)
                     {
-                        int newX = x + offsets[i].X * 1;
-                        int newY = y + offsets[i].Y * 1;
+                        int newX = x + offsets[i].point.X * 1;
+                        int newY = y + offsets[i].point.Y * 1;
                         Point newPoint = new Point(newX, newY);
                         if (newPoint.X < 0 || newPoint.X >= columns * 1 || newPoint.Y < 0 || newPoint.Y >= rows * 1)
                         {
                             continue;
                         }
                         
-                        int neighborValue = TwoDToOneD(newX, newY, columns) + 1;
-                        if (!graphValues.ContainsKey(neighborValue))
-                        {
-                            var vertex = new Vertex<Point>(new Point(newX, newY));
-                            graph.AddVertex(vertex);
-                            graphValues.Add(neighborValue, vertex);
-                        }
+                        int neighborID = TwoDToOneD(newX, newY, columns) + 1;
+                        //if (!graphValues.ContainsKey(neighborValue))
+                        //{
+                        //    var vertex = new Vertex<Point>(new Point(newX, newY));
+                        //    graph.AddVertex(vertex);
+                        //    graphValues.Add(neighborValue, vertex);
+                        //}
 
-                        float distance = 1; // (float)Math.Sqrt(Math.Pow(newX - x, 2) + Math.Pow(newY - y, 2));
+
+                        float distance = offsets[i].distance;
                         if (exclusionPoints.Contains(new Point(x, y)))
                         {
                             distance += 100;
                         }
-                        graph.AddEdge(graphValues[num], graphValues[neighborValue], distance);
+                        graph.AddEdge(graphValues[currentVertexID], graphValues[neighborID], distance);
                     }                  
                 }
             }
@@ -330,7 +356,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             platform = new Rectangle(GraphicsDevice.Viewport.Width / 2 - 150, GraphicsDevice.Viewport.Height - GraphicsDevice.Viewport.Height / 2 + 30, 300, 20);
             hitBoxes.Add(platform);
 
-            List<Point> excluded = new List<Point>();
+            HashSet<Point> excluded = new();
             foreach (var hb in hitBoxes)
             {
                 if (hb == platform)
