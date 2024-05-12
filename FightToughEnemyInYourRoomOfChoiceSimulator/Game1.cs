@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using MonoGame.Extended;
 using MonoGame.Extended.Serialization;
 using System;
 using System.Collections.Generic;
@@ -62,11 +63,14 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         Rectangle roof;
         Rectangle leftWall;
         Rectangle rightWall;
-        Rectangle platform;
+        Rectangle platform1;
+        Rectangle platform2;
+        Rectangle platform3;
 
         //timer lol
         int updateTimer;
         int gameTimer;
+        int timeTracker;
         List<int> timerCounts;
 
         bool captured;
@@ -95,18 +99,13 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 for (int x = 0; x < columns * 1; x += 1)
                 {
                     var vertex = new Vertex<Point>(new Point(x, y));
-                    graph.AddVertex(vertex);
-
-                    int num = TwoDToOneD(x, y, columns) + 1;
-                    graphValues[num] = vertex;
-
-                    /*
-                    if (graphValues.ContainsKey(num) == false)
+                    if (!exclusionPoints.Contains(vertex.Value))
                     {
-                        var vertex = new Vertex<Point>(new Point(x, y));
                         graph.AddVertex(vertex);
+
+                        int num = TwoDToOneD(x, y, columns) + 1;
+                        graphValues[num] = vertex;
                     }
-                    */
                 }
             }
 
@@ -114,57 +113,28 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             {
                 for (int x = 0; x < columns * 1; x += 1)
                 {
-                    int currentVertexID = TwoDToOneD(x, y, columns) + 1;
-
-                    for (int i = 0; i < offsets.Length; i++)
+                    if (!exclusionPoints.Contains(new Point(x, y)))
                     {
-                        int newX = x + offsets[i].point.X * 1;
-                        int newY = y + offsets[i].point.Y * 1;
-                        Point newPoint = new Point(newX, newY);
-                        if (newPoint.X < 0 || newPoint.X >= columns * 1 || newPoint.Y < 0 || newPoint.Y >= rows * 1)
-                        {
-                            continue;
-                        }
-                        
-                        int neighborID = TwoDToOneD(newX, newY, columns) + 1;
-                        //if (!graphValues.ContainsKey(neighborValue))
-                        //{
-                        //    var vertex = new Vertex<Point>(new Point(newX, newY));
-                        //    graph.AddVertex(vertex);
-                        //    graphValues.Add(neighborValue, vertex);
-                        //}
+                        int currentVertexID = TwoDToOneD(x, y, columns) + 1;
 
-
-                        float distance = offsets[i].distance;
-                        if (exclusionPoints.Contains(new Point(x, y)))
+                        for (int i = 0; i < offsets.Length; i++)
                         {
-                            distance += 100;
+                            int newX = x + offsets[i].point.X * 1;
+                            int newY = y + offsets[i].point.Y * 1;
+                            Point newPoint = new Point(newX, newY);
+                            if (newPoint.X < 0 || newPoint.X >= columns * 1 || newPoint.Y < 0 || newPoint.Y >= rows * 1)
+                            {
+                                continue;
+                            }
+
+                            int neighborID = TwoDToOneD(newX, newY, columns) + 1;
+                            float distance = offsets[i].distance;
+                            graph.AddEdge(graphValues[currentVertexID], graphValues[neighborID], distance);
                         }
-                        graph.AddEdge(graphValues[currentVertexID], graphValues[neighborID], distance);
-                    }                  
+                    }
                 }
             }
         }
-
-        //public List<Vertex<Point>> PathOptimizer(List<Vertex<Point>> originalPath)
-        //{
-        //    List<Vertex<Point>> newPath = new List<Vertex<Point>>();
-        //    List<Point> points = new List<Point>();
-
-        //    foreach(Vertex<Point> v in originalPath)
-        //    {
-        //        Vertex<Point> newV = new Vertex<Point>(new Point(v.Value.X / 4, v.Value.Y));
-        //        Point newP = newV.Value;
-
-        //        if (!points.Contains(newP))
-        //        {
-        //            points.Add(newP);
-        //            newPath.Add(newV);
-        //        }
-        //    }
-        //
-        //    return newPath;
-        //}
 
         //joystick added on movement if used
         private void JoystickInput (HashSet<Keys> keys)
@@ -269,6 +239,25 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         {  
             spriteBatch = new SpriteBatch(GraphicsDevice);
 
+            floor = new Rectangle(0, GraphicsDevice.Viewport.Height - 40, GraphicsDevice.Viewport.Width + 40, 30);
+            roof = new Rectangle(0, 20, GraphicsDevice.Viewport.Width + 40, 30);
+            leftWall = new Rectangle(20, -20, 30, GraphicsDevice.Viewport.Height + 40);
+            rightWall = new Rectangle(GraphicsDevice.Viewport.Width - 40, -20, 30, GraphicsDevice.Viewport.Height + 40);
+
+            hitBoxes.Add(floor);
+            hitBoxes.Add(roof);
+            hitBoxes.Add(leftWall);
+            hitBoxes.Add(rightWall);
+
+            platform1 = new Rectangle(GraphicsDevice.Viewport.Width / 2 - 125, GraphicsDevice.Viewport.Height - GraphicsDevice.Viewport.Height / 2 + 20, 250, 20);
+            platform2 = new Rectangle(GraphicsDevice.Viewport.Width / 2 - 300, GraphicsDevice.Viewport.Height - GraphicsDevice.Viewport.Height / 2 - 40, 100, 20);
+            platform3 = new Rectangle(GraphicsDevice.Viewport.Width / 2 + 200, GraphicsDevice.Viewport.Height - GraphicsDevice.Viewport.Height / 2 - 40, 100, 20);
+            hitBoxes.Add(platform1);
+            hitBoxes.Add(platform2);
+            hitBoxes.Add(platform3);
+
+
+
             kirbyIdleFrames = new List<Frame>();
             kirbyRunningFrames = new List<Frame>();
             kirbyJumpingFrames = new List<Frame>();
@@ -341,29 +330,14 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
             MetaKnight = new Character(new Vector2((GraphicsDevice.Viewport.Width - 32) / 2 - 200, (GraphicsDevice.Viewport.Height - 32) / 2), Content.Load<Texture2D>("kirby"), new List<List<Frame>>() { metaKnightJumpingFrames, metaKnightDoubleJumpingFrames, metaKnightCrouchingFrames, metaKnightCrouchMovingFrames, metaKnightIdleFrames, metaKnightRunningFrames, metaKnightJumpingFrames }, 4.0f, 0.2f, Keys.W, Keys.S, Keys.A, Keys.D);
 
-
-
-            floor = new Rectangle(0, GraphicsDevice.Viewport.Height - 40, GraphicsDevice.Viewport.Width + 40, 30);
-            roof = new Rectangle(0, 20, GraphicsDevice.Viewport.Width + 40, 30);
-            leftWall = new Rectangle(20, -20, 30, GraphicsDevice.Viewport.Height + 40);
-            rightWall = new Rectangle(GraphicsDevice.Viewport.Width - 40, -20, 30, GraphicsDevice.Viewport.Height + 40);
-
-            hitBoxes.Add(floor);
-            hitBoxes.Add(roof);
-            hitBoxes.Add(leftWall);
-            hitBoxes.Add(rightWall);
-
-            platform = new Rectangle(GraphicsDevice.Viewport.Width / 2 - 150, GraphicsDevice.Viewport.Height - GraphicsDevice.Viewport.Height / 2 + 30, 300, 20);
-            hitBoxes.Add(platform);
-
             HashSet<Point> excluded = new();
             foreach (var hb in hitBoxes)
             {
-                if (hb == platform)
+                if (Math.Abs(hb.Height) <= 20)
                 {
-                    for (int x = hb.X - 50; x < hb.X + hb.Width + 50; x++)
+                    for (int x = hb.X; x < hb.X + hb.Width; x++)
                     {
-                        for (int y = hb.Y; y < hb.Y + hb.Height + 100; y++)
+                        for (int y = hb.Y; y < hb.Y + hb.Height; y++)
                         {
                             excluded.Add(new Point(x, y));
                         }
@@ -371,7 +345,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 }
             }
 
-            
+
 
 
             graph = new Graph<Point>();
@@ -379,6 +353,9 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             priorityQueue = null;
             path = null;
             pathIndex = 0;
+
+            timerCounts = new();
+            timeTracker = 0;
         }
 
         public bool kirbyIdle = false;
@@ -444,6 +421,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             if (!captured)
             {
                 gameTimer++;
+                timeTracker++;
 
                 Kirby.idle = true;
                 MetaKnight.idle = true;
@@ -455,7 +433,6 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                     if (path[pathIndex].Value.X - 32 < path[pathIndex + 1].Value.X - 32)
                     {
                         keysPressed.Add(Keys.D);
-                        //MetaKnight.Position.X += 4;
 
                         MetaKnight.Direction = SpriteEffects.None;
                         MetaKnight.characterState = CharacterState.Running;
@@ -463,7 +440,6 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                     else if (path[pathIndex].Value.X > path[pathIndex + 1].Value.X)
                     {
                         keysPressed.Add(Keys.A);
-                        //MetaKnight.Position.X -= 4;
 
                         MetaKnight.Direction = SpriteEffects.FlipHorizontally;
                         MetaKnight.characterState = CharacterState.Running;
@@ -513,7 +489,6 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                         }
 
                         path = graph.AStar(metaKnightVertex, kirbyVertex, Heuristics.Euclidean, out priorityQueue);
-                        //path = PathOptimizer(path);
                         pathIndex = 0;
                     }
 
@@ -531,6 +506,10 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                             {
                                 Kirby.Position.Y++;
                             }
+                            if (MetaKnight.GetHitbox().Intersects(hitBoxes[i]))
+                            {
+                                MetaKnight.Position.Y++;
+                            }
                         }
                         if (hitBoxes[i] == floor)
                         {
@@ -540,6 +519,10 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                             if (Kirby.GetHitbox().Intersects(hitBoxes[i]))
                             {
                                 Kirby.Position.Y--;
+                            }
+                            if (MetaKnight.GetHitbox().Intersects(hitBoxes[i]))
+                            {
+                                MetaKnight.Position.Y--;
                             }
                         }
                         if (hitBoxes[i] == leftWall)
@@ -551,6 +534,10 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                             {
                                 Kirby.Position.X++;
                             }
+                            if (MetaKnight.GetHitbox().Intersects(hitBoxes[i]))
+                            {
+                                MetaKnight.Position.X++;
+                            }
                         }
                         if (hitBoxes[i] == rightWall)
                         {
@@ -560,6 +547,10 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                             if (Kirby.GetHitbox().Intersects(hitBoxes[i]))
                             {
                                 Kirby.Position.X--;
+                            }
+                            if (MetaKnight.GetHitbox().Intersects(hitBoxes[i]))
+                            {
+                                MetaKnight.Position.X--;
                             }
                         }
                     }
@@ -576,26 +567,27 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
                 if (Kirby.GetHitbox().Intersects(MetaKnight.GetHitbox()))
                 {
-                    //bool 
                     Kirby.characterState = CharacterState.Jumping;
                     MetaKnight.characterState = CharacterState.Idling;
-                    timerCounts.Add(gameTimer);
+                    timerCounts.Add(timeTracker);
 
-                    //Console.WriteLine();
-                    //for (int i = 0; i < timerCounts.Count; i++)
-                    //{
-                    //    if (gameTimer < timerCounts[i])
-                    //    {
-                            
-                    //    }
-                    //}
-                    //if (timerCounts.Count <= 1)
-                    //{
-                    //    Console.WriteLine("New Highscore!");
-                    //}
-                    //Console.WriteLine($"You survived for {gameTimer} ticks!");
+                    bool newHighscore = true;
+                    Console.WriteLine();
+                    for (int i = 0; i < timerCounts.Count - 1; i++)
+                    {
+                        if (timeTracker < timerCounts[i])
+                        {
+                            newHighscore = false;
+                        }
+                    }
+                    if (newHighscore)
+                    {
+                        Console.WriteLine("New Highscore!");
+                    }
+                    Console.WriteLine($"You survived for {timeTracker} ticks!");
 
                     captured = true;
+                    timeTracker = 0;
                 }
             }
 

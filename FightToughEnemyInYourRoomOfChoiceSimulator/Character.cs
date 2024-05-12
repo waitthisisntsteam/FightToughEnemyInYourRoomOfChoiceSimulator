@@ -29,8 +29,6 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         private float charXSpeed;
         private float charYSpeed;
 
-        private bool phaseThrough;
-
         private int jumpCount;
         private bool upPressed;
         public bool idle;
@@ -65,8 +63,6 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             this.left = left;
             this.right = right;
 
-            phaseThrough = false;
-
             characterState = CharacterState.Idling;
         }
 
@@ -74,8 +70,6 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
         public void Update(GameTime gameTime, List<Rectangle> hitBoxes, HashSet<Keys> keysDown)
         {
-            phaseThrough = false;
-
             if (characterState == CharacterState.Crouching)
             {
                 charYSpeed += gravity * 4;
@@ -108,7 +102,6 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             Position.Y += charYSpeed;
             if (keysDown.Contains(down))
             {
-                phaseThrough = true;
                 idle = false;
             }
             if (!keysDown.Contains(down) && jumpCount > 0)
@@ -185,27 +178,24 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             {
                 if (characterHB.Intersects(hB))
                 {
-                    if (Math.Abs(hB.Height) > 20)
-                    {
-                        phaseThrough = false;
-                    }
+                    bool notPlatform = Math.Abs(hB.Height) > 20;
 
-                    if (!phaseThrough && characterHB.Bottom >= hB.Top && characterHB.Y < hB.Top - characterHB.Height + charYSpeed + 10 && characterHB.Right < hB.Right && characterHB.Left > hB.Left)
+                    if (characterHB.Bottom >= hB.Top && characterHB.Y < hB.Top - characterHB.Height + charYSpeed + 10 && characterHB.Right < hB.Right && characterHB.Left > hB.Left)
                     {
                         Position.Y -= charYSpeed;
                         charYSpeed = 0;
                         jumpCount = 0;
                     }
-                    //else if (characterHB.Top <= hB.Bottom && characterHB.Bottom > hB.Bottom && characterHB.Right < hB.Right && characterHB.Left > hB.Left)
-                    //{
-                    //    phaseThrough = false;
-                    //    Position.Y = hB.Bottom;
-                    //}
-                    else if (characterHB.Left <= hB.Right && Direction == SpriteEffects.FlipHorizontally && characterHB.Right > hB.Right && characterHB.Left < hB.Left)
+                    else if (characterHB.Top <= hB.Bottom && characterHB.Right < hB.Right && characterHB.Left > hB.Left)
+                    {
+                        Position.Y = hB.Bottom + 1;
+                        charYSpeed = 0;
+                    }
+                    else if (characterHB.Left <= hB.Right && notPlatform && Direction == SpriteEffects.FlipHorizontally)
                     {
                         Position.X += charXSpeed;
                     }
-                    else if (characterHB.Right >= hB.Left && Direction == SpriteEffects.None && characterHB.Right > hB.Right && characterHB.Left < hB.Left)
+                    else if (characterHB.Right >= hB.Left && notPlatform && Direction == SpriteEffects.None)
                     {
                         Position.X -= charXSpeed;
                     }
