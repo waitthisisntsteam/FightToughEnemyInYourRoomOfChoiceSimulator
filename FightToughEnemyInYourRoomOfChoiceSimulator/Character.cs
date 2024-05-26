@@ -103,6 +103,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             if (keysDown.Contains(down))
             {
                 idle = false;
+                characterState = CharacterState.Crouching;
             }
             if (!keysDown.Contains(down) && jumpCount > 0)
             {
