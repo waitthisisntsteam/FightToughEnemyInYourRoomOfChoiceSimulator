@@ -191,6 +191,23 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                     {
                         Position.Y = hB.Bottom + 1;
                         charYSpeed = 0;
+
+                        //if (!notPlatform)
+                        //{
+                        //    if (hB.Width > 100)
+                        //    {
+                        //        Game1.platform1HitCount++;
+                        //    }
+                        //    if (hB.X < 400)
+                        //    {
+                        //        Game1.platform2HitCount++;
+                        //    }
+                        //    else
+                        //    {
+                        //        Game1.platform3HitCount++;
+                        //    }
+
+                        //}
                     }
                     else if (characterHB.Left <= hB.Right && notPlatform && Direction == SpriteEffects.FlipHorizontally)
                     {

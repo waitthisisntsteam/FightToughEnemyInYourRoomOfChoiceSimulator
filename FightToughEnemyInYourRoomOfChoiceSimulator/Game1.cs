@@ -76,6 +76,11 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
         List<int> timerCounts;
 
         bool captured;
+        bool twoPlayer;
+
+        //public static int platform1HitCount;
+        //public static int platform2HitCount;
+        //public static int platform3HitCount;
 
         //pathfinding grid setup
         static int TwoDToOneD(int x, int y, int width) => x + y * width;    
@@ -362,16 +367,10 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             path = null;
             pathIndex = 0;
 
-            foreach (var v in graph.Vertices)
-            {
-                if (v.Value.Y == 210)
-                {
-                    Console.WriteLine(v.Value.X.ToString());
-                }
-            }
-
             timerCounts = new();
             timeTracker = 0;
+
+            twoPlayer = false;
 
         }
 
@@ -455,7 +454,9 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 Kirby.idle = true;
                 MetaKnight.idle = true;
 
-                if (path != null && pathIndex < path.Count - 1)
+                char stuckSide = 'l';
+
+                if (!twoPlayer && path != null && pathIndex < path.Count - 1)
                 {
                     MetaKnight.idle = false;
 
@@ -464,10 +465,12 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                         if ((Kirby.Position.X + 32) < GraphicsDevice.Viewport.Width / 2)
                         {
                             keysPressed.Add(Keys.A);
+                            stuckSide = 'l';
                         }
                         else
                         {
                             keysPressed.Add(Keys.D);
+                            stuckSide = 'r';
                         }
                     }
                     else if (path[pathIndex].Value.X < path[pathIndex + 1].Value.X)
@@ -502,10 +505,27 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                     pathIndex++;
                 }
 
-                //if (stuck)
-                //{
-                //    MetaKnight.Position = new Vector2 (MetaKnight.Position.X, MetaKnight.Position.Y - 10);
-                //}
+                if (!twoPlayer && stuck)
+                {
+                    MetaKnight.Position = new Vector2(MetaKnight.Position.X, MetaKnight.Position.Y - 5);
+                    keysPressed.Add(Keys.W);
+
+                    if (stuckSide == 'l')
+                    {
+                        keysPressed.Add(Keys.A);
+                    }
+                    else
+                    {
+                        keysPressed.Add(Keys.D);
+                    }
+
+                    stuck = false;
+                }
+                
+                if (keysPressed.Contains(Keys.P))
+                {
+                    twoPlayer = !twoPlayer;
+                }
 
                 Kirby.Update(gameTime, hitBoxes, keysPressed);
                 MetaKnight.Update(gameTime, hitBoxes, keysPressed);
@@ -518,30 +538,33 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                     oldMetaKnightPoint = metaKnightPoint;
 
                     //pathfinding update
-                    priorityQueue = null;
-
-                    kirbyPoint = new Point((int)Kirby.Position.X / 4, (int)Kirby.Position.Y);
-                    kirbyVertex = graph.Search(kirbyPoint);
-
-                    metaKnightPoint = new Point((int)MetaKnight.Position.X / 4, (int)MetaKnight.Position.Y);
-                    metaKnightVertex = graph.Search(metaKnightPoint);
-
-                    if (path != null)
+                    if (!twoPlayer)
                     {
-                        path.Clear();
-                    }
+                        priorityQueue = null;
 
-                    if (metaKnightVertex != null && kirbyVertex != null)
-                    {
-                        //stuck = false;
-                        path = graph.AStar(metaKnightVertex, kirbyVertex, Heuristics.Euclidean, out priorityQueue);
-                    }
-                    else
-                    {
-                        //stuck = true;
-                    }
+                        kirbyPoint = new Point((int)Kirby.Position.X / 4, (int)Kirby.Position.Y);
+                        kirbyVertex = graph.Search(kirbyPoint);
 
-                    pathIndex = 0;
+                        metaKnightPoint = new Point((int)MetaKnight.Position.X / 4, (int)MetaKnight.Position.Y);
+                        metaKnightVertex = graph.Search(metaKnightPoint);
+
+                        if (path != null)
+                        {
+                            path.Clear();
+                        }
+
+                        if (metaKnightVertex != null && kirbyVertex != null)
+                        {
+                            stuck = false;
+                            path = graph.AStar(metaKnightVertex, kirbyVertex, Heuristics.Euclidean, out priorityQueue);
+                        }
+                        else
+                        {
+                            stuck = true;
+                        }
+
+                        pathIndex = 0;
+                    }
 
                     //platforms closing in
                     for (int i = 0; i < hitBoxes.Count; i++)
