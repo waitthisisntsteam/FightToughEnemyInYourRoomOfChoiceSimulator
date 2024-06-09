@@ -25,6 +25,13 @@
 /processorParam:TextureFormat=Color
 /build:background.png
 
+#begin Font.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Compressed
+/build:Font.spritefont
+
 #begin hitbox.png
 /importer:TextureImporter
 /processor:TextureProcessor

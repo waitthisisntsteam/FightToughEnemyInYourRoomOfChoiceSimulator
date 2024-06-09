@@ -20,6 +20,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
     {
         private GraphicsDeviceManager gfx;
         private SpriteBatch spriteBatch;
+        private SpriteFont spriteFont;
 
         private List<Rectangle> hitBoxes = new List<Rectangle>();
 
@@ -77,6 +78,10 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
         bool captured;
         bool twoPlayer;
+        bool twoPlayerPressed;
+
+        bool highscoreAchieved;
+        int ticks;
 
         //public static int platform1HitCount;
         //public static int platform2HitCount;
@@ -201,6 +206,8 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             updateTimer = 0;
             gameTimer = 0;
 
+            spriteFont = Content.Load<SpriteFont>("Font");
+
             Console.WriteLine("Searching for Controller...");
 
             //joystick added on movement if used
@@ -263,7 +270,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
             platform1 = new Rectangle(GraphicsDevice.Viewport.Width / 2 - 125, GraphicsDevice.Viewport.Height - GraphicsDevice.Viewport.Height / 2 + 20, 250, 20);
             platform2 = new Rectangle(GraphicsDevice.Viewport.Width / 2 - 300, GraphicsDevice.Viewport.Height - GraphicsDevice.Viewport.Height / 2 - 40, 100, 20);
-            platform3 = new Rectangle(GraphicsDevice.Viewport.Width / 2 + 200, GraphicsDevice.Viewport.Height - GraphicsDevice.Viewport.Height / 2 - 40, 100, 20);
+            platform3 = new Rectangle(GraphicsDevice.Viewport.Width / 2 + 215, GraphicsDevice.Viewport.Height - GraphicsDevice.Viewport.Height / 2 - 40, 100, 20);
             hitBoxes.Add(platform1);
             hitBoxes.Add(platform2);
             hitBoxes.Add(platform3);
@@ -310,7 +317,8 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
             Kirby = new Character(new Vector2((GraphicsDevice.Viewport.Width - 32)/2 + 200, (GraphicsDevice.Viewport.Height - 32)/2), Content.Load<Texture2D>("kirby"), new List<List<Frame>>() { kirbyJumpingFrames, kirbyDoubleJumpingFrames, kirbyCrouchingFrames, kirbyCrouchMovingFrames, kirbyIdleFrames, kirbyRunningFrames, kirbyJumpingFrames }, 4f, 0.2f, Keys.Up, Keys.Down, Keys.Left, Keys.Right);
             captured = false;
-
+            highscoreAchieved = false;
+            ticks = 0;
 
             metaKnightIdleFrames = new List<Frame>();
             metaKnightRunningFrames = new List<Frame>();
@@ -371,6 +379,9 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             timeTracker = 0;
 
             twoPlayer = false;
+            twoPlayerPressed = false;
+
+
 
         }
 
@@ -397,10 +408,17 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 rightWall.X = GraphicsDevice.Viewport.Width - 40;
                 rightWall.Y = -20;
 
+                platform1.X = GraphicsDevice.Viewport.Width / 2 - 125;
+                platform2.X = GraphicsDevice.Viewport.Width / 2 - 300;
+                platform3.X = GraphicsDevice.Viewport.Width / 2 + 200;
+
                 hitBoxes[0] = floor;
                 hitBoxes[1] = roof; 
                 hitBoxes[2] = leftWall;
                 hitBoxes[3] = rightWall;
+                hitBoxes[4] = platform1;
+                hitBoxes[5] = platform2;
+                hitBoxes[6] = platform3;
 
                 metaKnightPoint = default;
                 metaKnightVertex = null;
@@ -411,6 +429,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                 kirbyPointPrev = kirbyPoint;
                 Kirby = new Character(new Vector2((GraphicsDevice.Viewport.Width - 32) / 2 + 200, (GraphicsDevice.Viewport.Height - 32) / 2), Content.Load<Texture2D>("kirby"), new List<List<Frame>>() { kirbyJumpingFrames, kirbyDoubleJumpingFrames, kirbyCrouchingFrames, kirbyCrouchMovingFrames, kirbyIdleFrames, kirbyRunningFrames, kirbyJumpingFrames }, 4f, 0.2f, Keys.Up, Keys.Down, Keys.Left, Keys.Right);
                 captured = false;
+                highscoreAchieved = false;
 
                 priorityQueue = null;
                 path = null;
@@ -462,7 +481,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
                     if (excluded.Contains(new Point(path[pathIndex].Value.X * 4, path[pathIndex].Value.Y)) || oldMetaKnightPoint == metaKnightPoint)
                     {
-                        if ((Kirby.Position.X + 32) < GraphicsDevice.Viewport.Width / 2)
+                        if ((Kirby.Position.X + 32) < GraphicsDevice.Viewport.Width / 2 || (Kirby.Position.X + 32) < GraphicsDevice.Viewport.Width / 2 - 70)
                         {
                             keysPressed.Add(Keys.A);
                             stuckSide = 'l';
@@ -521,10 +540,15 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
                     stuck = false;
                 }
-                
+
                 if (keysPressed.Contains(Keys.P))
                 {
+                    twoPlayerPressed = true;
+                }
+                else if (twoPlayerPressed)
+                {
                     twoPlayer = !twoPlayer;
+                    twoPlayerPressed = false;
                 }
 
                 Kirby.Update(gameTime, hitBoxes, keysPressed);
@@ -532,7 +556,7 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
 
                 //tick update
                 updateTimer++;
-                if (updateTimer >= 70)
+                if (updateTimer >= 60)
                 {
                     updateTimer = 0;
                     oldMetaKnightPoint = metaKnightPoint;
@@ -626,10 +650,35 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                                 MetaKnight.Position.X--;
                             }
                         }
+
+                        if (hitBoxes[i].Height > 20)
+                        {
+                            for (int j = 4; j < 7; j++)
+                            {
+                                if (hitBoxes[i].Intersects(hitBoxes[j]))
+                                { 
+                                    if (hitBoxes[j] == platform1)
+                                    {
+                                        hitBoxes[j] = platform1 = new Rectangle(hitBoxes[j].X - 1000, hitBoxes[j].Y, hitBoxes[j].Width, hitBoxes[j].Height);
+                                        platform1 = hitBoxes[j];
+                                    }
+                                    if (hitBoxes[j] == platform2)
+                                    {
+                                        hitBoxes[j] = platform2 = new Rectangle(hitBoxes[j].X + 1000, hitBoxes[j].Y, hitBoxes[j].Width, hitBoxes[j].Height);
+                                        platform2 = hitBoxes[j];
+                                    }
+                                    if (hitBoxes[j] == platform3)
+                                    {
+                                        hitBoxes[j] = platform3 = new Rectangle(hitBoxes[j].X + 1000, hitBoxes[j].Y, hitBoxes[j].Width, hitBoxes[j].Height);
+                                        platform3 = hitBoxes[j];
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
-                if (Kirby.GetHitbox().Intersects(MetaKnight.GetHitbox()))
+                if (Kirby.GetHitbox().Intersects(MetaKnight.GetHitbox()) || Kirby.Position.X < leftWall.X || Kirby.Position.X > rightWall.X || Kirby.Position.Y > floor.Y || Kirby.Position.Y < roof.Y)
                 {
                     Kirby.characterState = CharacterState.Jumping;
                     MetaKnight.characterState = CharacterState.Idling;
@@ -646,10 +695,10 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
                     }
                     if (newHighscore)
                     {
-                        Console.WriteLine("New Highscore!");
+                        highscoreAchieved = true;    
                     }
-                    Console.WriteLine($"You survived for {timeTracker} ticks!");
-
+                    ticks = timeTracker;
+                    
                     captured = true;
                     timeTracker = 0;
                 }
@@ -679,6 +728,19 @@ namespace FightToughEnemyInYourRoomOfChoiceSimulator
             }
             //spriteBatch.Draw(Content.Load<Texture2D>("hitbox"), new Rectangle((int)Kirby.Position.X, (int)Kirby.Position.Y, 32, 32), Color.White);
             //spriteBatch.Draw(Content.Load<Texture2D>("hitbox"), new Rectangle(kirbyPoint.X, kirbyPoint.Y, 5, 5), Color.White);
+
+            if (captured)
+            {
+                if (highscoreAchieved)
+                {
+                    spriteBatch.DrawString(spriteFont, "New Highscore!", new Vector2(GraphicsDevice.Viewport.Width / 2 - 50, GraphicsDevice.Viewport.Height / 2), Color.GreenYellow);
+                    spriteBatch.DrawString(spriteFont, $"You survived for {ticks} ticks!", new Vector2(GraphicsDevice.Viewport.Width / 2 - 100, GraphicsDevice.Viewport.Height / 2 + 25), Color.Yellow);
+                }
+                else
+                {
+                    spriteBatch.DrawString(spriteFont, $"You survived for {ticks} ticks!", new Vector2(GraphicsDevice.Viewport.Width / 2 - 100, GraphicsDevice.Viewport.Height / 2), Color.Yellow);
+                }
+            }
 
             spriteBatch.End();
 
